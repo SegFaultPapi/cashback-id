@@ -7,63 +7,61 @@ export function LandingNavbar({ className }: { className?: string }) {
   const [active, setActive] = useState<string | null>(null)
   
   return (
-    <div className={cn("fixed top-10 inset-x-0 z-50 px-4", className)}>
+    <div className={cn("hidden md:block fixed top-4 inset-x-0 z-40 px-4", className)}>
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-center">
           <Menu setActive={setActive}>
-              <MenuItem setActive={setActive} active={active} item="Features">
-                <div className="flex flex-col space-y-4 text-sm">
-                  <HoveredLink href="#features">Auto-Investing</HoveredLink>
-                  <HoveredLink href="#features">Privacy Protection</HoveredLink>
-                  <HoveredLink href="#features">Real-Time Tracking</HoveredLink>
-                  <HoveredLink href="#card">Identity Card</HoveredLink>
-                </div>
-              </MenuItem>
-              
               <MenuItem setActive={setActive} active={active} item="How It Works">
                 <div className="grid grid-cols-2 gap-6 p-4">
                   <ProductItem
                     title="Shop Anywhere"
                     href="#howitworks"
                     src="/images/shop-anywhere.jpg"
-                    description="Use your unique ID at partner merchants to earn cashback instantly."
+                    description="Earn cashback at partner merchants on any EVM chain."
                   />
                   <ProductItem
-                    title="Auto-Invest"
+                    title="ENS Routes It"
                     href="#howitworks"
                     src="/images/auto-invest.jpg"
-                    description="Your cashback automatically goes into yield-generating pools on Sui."
+                    description="Your .eth name stores preferences. LI.FI reads them to bridge your cashback."
                   />
                   <ProductItem
-                    title="Track Growth"
+                    title="Sui Settles It"
                     href="#howitworks"
                     src="/images/track-growth.jpg"
-                    description="Watch your returns grow in real-time with complete transparency."
+                    description="Sub-second finality. zkLogin with Google or Apple. No seed phrases."
                   />
                   <ProductItem
-                    title="Withdraw Anytime"
+                    title="Claim Anytime"
                     href="#howitworks"
                     src="/images/withdraw.jpg"
-                    description="Access your funds whenever you need them, no lock-up periods."
+                    description="Auto-invested in yield pools. Withdraw whenever you want."
                   />
                 </div>
               </MenuItem>
-              
-              <MenuItem setActive={setActive} active={active} item="Partners">
+
+              <MenuItem setActive={setActive} active={active} item="Architecture">
                 <div className="flex flex-col space-y-4 text-sm">
-                  <HoveredLink href="#partners">Retail Stores</HoveredLink>
-                  <HoveredLink href="#partners">Online Merchants</HoveredLink>
-                  <HoveredLink href="#partners">Restaurants</HoveredLink>
-                  <HoveredLink href="#partners">Become a Partner</HoveredLink>
+                  <HoveredLink href="#architecture">ENS Custom Text Records</HoveredLink>
+                  <HoveredLink href="#architecture">LI.FI Cross-Chain Routing</HoveredLink>
+                  <HoveredLink href="#architecture">Sui zkLogin Settlement</HoveredLink>
+                  <HoveredLink href="#architecture">Filecoin Proof Layer</HoveredLink>
+                  <HoveredLink href="#architecture">Safe Multi-Sig Control</HoveredLink>
                 </div>
               </MenuItem>
               
+              <MenuItem setActive={setActive} active={active} item="Tracks">
+                <div className="flex flex-col space-y-4 text-sm">
+                  <HoveredLink href="https://li.fi">Best Use of LI.FI Composer</HoveredLink>
+                  <HoveredLink href="https://sui.io">Best Overall Sui Project</HoveredLink>
+                  <HoveredLink href="https://ens.domains">Most Creative Use of ENS</HoveredLink>
+                </div>
+              </MenuItem>
+
               <MenuItem setActive={setActive} active={active} item="About">
                 <div className="flex flex-col space-y-4 text-sm">
-                  <HoveredLink href="#about">Our Mission</HoveredLink>
-                  <HoveredLink href="#about">Technology</HoveredLink>
-                  <HoveredLink href="#about">Security</HoveredLink>
-                  <HoveredLink href="#about">Contact</HoveredLink>
+                  <HoveredLink href="https://github.com/SegFaultPapi/cashback-id">GitHub</HoveredLink>
+                  <HoveredLink href="#cta">Get Started</HoveredLink>
                 </div>
               </MenuItem>
             </Menu>

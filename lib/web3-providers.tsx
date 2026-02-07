@@ -1,113 +1,391 @@
+/**
+ * Web3 Orchestrator for Cashback ID
+ *
+ * Central context that unifies:
+ *   - Sui (zkLogin for retail settlement)
+ *   - ENS (payment preferences via Custom Text Records)
+ *   - LI.FI (cross-chain cashback routing)
+ *   - Filecoin (immutable proof persistence)
+ *
+ * Hierarchy:
+ *   <Web3Provider>          ← This file: top-level orchestrator
+ *     <SuiProvider>         ← lib/sui-client.tsx
+ *       {children}
+ *     </SuiProvider>
+ *   </Web3Provider>
+ */
+
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  type ReactNode,
+} from "react"
+import { SuiProvider, useSui, formatSuiAddress } from "./sui-client"
+import {
+  resolvePaymentPreferences,
+  resolveEnsName,
+  resolveEnsAvatar,
+  buildSetPreferencesTx,
+  isValidEnsName,
+  formatPreferencesSummary,
+  type CashbackPreferences,
+  SUPPORTED_CHAINS,
+  SUPPORTED_ASSETS,
+} from "./ens-resolver"
+import {
+  buildCashbackRoute,
+  getCashbackQuote,
+  checkTransferStatus,
+  evaluateOmnipinSweep,
+  type CashbackRoute,
+  type OmnipinSweepResult,
+} from "./lifi-client"
+import {
+  createCashbackProof,
+  uploadCashbackProof,
+  type CashbackProof,
+  type IPFSUploadResult,
+} from "./filecoin-persistence"
 
-interface WalletState {
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface WalletState {
   isConnected: boolean
+  /** Sui address */
   address: string | null
+  /** SUI balance */
   balance: string
-  chainId: number | null
+  /** Chain name display */
   chainName: string
+  /** Chain ID (101 for Sui) */
+  chainId: number | null
+  /** zkLogin provider */
+  provider: string | null
+  /** ENS name (if resolved) */
+  ensName: string | null
+  /** ENS avatar URL */
+  ensAvatar: string | null
+  /** ENS payment preferences */
+  preferences: CashbackPreferences | null
 }
 
-interface WalletContextType {
+export interface WalletContextType {
   wallet: WalletState
-  connect: () => Promise<void>
+  /** Connect via zkLogin (Google/Apple) */
+  connect: (provider?: "google" | "apple") => Promise<void>
+  /** Disconnect all sessions */
   disconnect: () => void
   isConnecting: boolean
+  /** Link an ENS name to the session */
+  linkEnsName: (ensName: string) => Promise<void>
+  /** Update ENS payment preferences (returns tx data for Safe) */
+  updatePreferences: (
+    prefs: Partial<Omit<CashbackPreferences, "ensName">>
+  ) => { to: string; data: string } | null
+  /** Get a cross-chain route for cashback claim */
+  getClaimRoute: (
+    sourceChainId: number,
+    sourceTokenAddress: string,
+    amount: string
+  ) => Promise<CashbackRoute | null>
+  /** Record a cashback event to IPFS/Filecoin */
+  recordCashback: (params: {
+    sourceChainId: number
+    sourceTxHash: string
+    sourceAsset: string
+    cashbackAmount: string
+    merchant: string
+  }) => Promise<IPFSUploadResult | null>
+  /** Check Omnipin sweep eligibility */
+  checkSweep: (
+    balances: Array<{
+      chainId: number
+      tokenAddress: string
+      amount: string
+      amountUSD: number
+    }>
+  ) => Promise<OmnipinSweepResult[]>
 }
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
 
 const WalletContext = createContext<WalletContextType | null>(null)
 
-export function useWallet() {
-  const context = useContext(WalletContext)
-  if (!context) {
-    throw new Error("useWallet must be used within a Web3Provider")
-  }
-  return context
+export function useWallet(): WalletContextType {
+  const ctx = useContext(WalletContext)
+  if (!ctx) throw new Error("useWallet must be used within <Web3Provider>")
+  return ctx
 }
 
-// Mock Web3 functions
-export async function claimRewards(amount: bigint): Promise<void> {
-  console.log("[v0] Claiming rewards:", amount.toString())
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-  console.log("[v0] Rewards claimed successfully")
-}
+// ---------------------------------------------------------------------------
+// Inner provider (has access to useSui)
+// ---------------------------------------------------------------------------
 
-export async function generateIdentityProof(provider: string): Promise<string> {
-  console.log("[v0] Generating identity proof with:", provider)
-  await new Promise((resolve) => setTimeout(resolve, 3000))
-  const proofHash = `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`
-  console.log("[v0] Proof generated:", proofHash)
-  return proofHash
-}
+function WalletOrchestrator({ children }: { children: ReactNode }) {
+  const sui = useSui()
 
-export async function activateMerchant(merchantId: string): Promise<void> {
-  console.log("[v0] Activating merchant:", merchantId)
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-  console.log("[v0] Merchant activated successfully")
-}
-
-export async function getRewardsBalance(): Promise<bigint> {
-  console.log("[v0] Getting rewards balance")
-  return BigInt("1234000000000") // 1.234 SUI
-}
-
-const MOCK_ADDRESSES = [
-  "0x742d35Cc6634C0532925a3b844Bc9e7595f8fE0C",
-  "0x8ba1f109551bD432803012645Hac136E8a50C87",
-  "0x1234567890abcdef1234567890abcdef12345678",
-]
-
-export function Web3Provider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<WalletState>({
     isConnected: false,
     address: null,
     balance: "0",
-    chainId: null,
     chainName: "",
+    chainId: null,
+    provider: null,
+    ensName: null,
+    ensAvatar: null,
+    preferences: null,
   })
   const [isConnecting, setIsConnecting] = useState(false)
 
-  const connect = useCallback(async () => {
-    setIsConnecting(true)
-    console.log("[v0] Connecting wallet...")
+  // Sync Sui wallet state → unified wallet
+  useEffect(() => {
+    if (sui.wallet.isConnected) {
+      setWallet((prev) => ({
+        ...prev,
+        isConnected: true,
+        address: sui.wallet.address,
+        balance: sui.wallet.balance,
+        chainName: "Sui Network",
+        chainId: 101,
+        provider: sui.wallet.provider,
+      }))
+    }
+  }, [
+    sui.wallet.isConnected,
+    sui.wallet.address,
+    sui.wallet.balance,
+    sui.wallet.provider,
+  ])
 
-    // Simulate connection delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  // Restore ENS link from localStorage
+  useEffect(() => {
+    const savedEns = localStorage.getItem("cashbackid_ens_name")
+    if (savedEns && wallet.isConnected) {
+      linkEnsName(savedEns).catch(() => {})
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallet.isConnected])
 
-    const randomAddress = MOCK_ADDRESSES[Math.floor(Math.random() * MOCK_ADDRESSES.length)]
+  // ------ Connect (zkLogin) ------
 
-    setWallet({
-      isConnected: true,
-      address: randomAddress,
-      balance: "124.58",
-      chainId: 101,
-      chainName: "Sui Mainnet",
-    })
+  const connect = useCallback(
+    async (provider: "google" | "apple" = "google") => {
+      setIsConnecting(true)
+      try {
+        await sui.connectWithZkLogin(provider)
+      } finally {
+        setIsConnecting(false)
+      }
+    },
+    [sui]
+  )
 
-    setIsConnecting(false)
-    console.log("[v0] Wallet connected:", randomAddress)
-  }, [])
+  // ------ Disconnect ------
 
   const disconnect = useCallback(() => {
-    console.log("[v0] Disconnecting wallet")
+    sui.disconnect()
     setWallet({
       isConnected: false,
       address: null,
       balance: "0",
-      chainId: null,
       chainName: "",
+      chainId: null,
+      provider: null,
+      ensName: null,
+      ensAvatar: null,
+      preferences: null,
     })
-  }, [])
+    localStorage.removeItem("cashbackid_ens_name")
+  }, [sui])
+
+  // ------ ENS Linking ------
+
+  const linkEnsName = useCallback(
+    async (ensName: string) => {
+      if (!isValidEnsName(ensName)) {
+        console.warn("[ENS] Invalid name:", ensName)
+        return
+      }
+
+      console.log("[ENS] Linking:", ensName)
+
+      try {
+        const [preferences, avatar] = await Promise.all([
+          resolvePaymentPreferences(ensName),
+          resolveEnsAvatar(ensName),
+        ])
+
+        setWallet((prev) => ({
+          ...prev,
+          ensName,
+          ensAvatar: avatar,
+          preferences,
+        }))
+
+        localStorage.setItem("cashbackid_ens_name", ensName)
+        console.log(
+          "[ENS] Preferences loaded:",
+          formatPreferencesSummary(preferences)
+        )
+      } catch (error) {
+        console.error("[ENS] Failed to resolve:", error)
+      }
+    },
+    []
+  )
+
+  // ------ Update ENS Preferences ------
+
+  const updatePreferences = useCallback(
+    (prefs: Partial<Omit<CashbackPreferences, "ensName">>) => {
+      if (!wallet.ensName) return null
+
+      const txData = buildSetPreferencesTx(wallet.ensName, prefs)
+
+      // Also update local state immediately (optimistic)
+      setWallet((prev) => ({
+        ...prev,
+        preferences: prev.preferences
+          ? { ...prev.preferences, ...prefs }
+          : null,
+      }))
+
+      return { to: txData.to, data: txData.data }
+    },
+    [wallet.ensName]
+  )
+
+  // ------ LI.FI Cross-Chain Route ------
+
+  const getClaimRoute = useCallback(
+    async (
+      sourceChainId: number,
+      sourceTokenAddress: string,
+      amount: string
+    ) => {
+      if (!wallet.address || !wallet.preferences) return null
+
+      return buildCashbackRoute(
+        sourceChainId,
+        sourceTokenAddress,
+        amount,
+        wallet.address,
+        wallet.preferences
+      )
+    },
+    [wallet.address, wallet.preferences]
+  )
+
+  // ------ Filecoin Persistence ------
+
+  const recordCashback = useCallback(
+    async (params: {
+      sourceChainId: number
+      sourceTxHash: string
+      sourceAsset: string
+      cashbackAmount: string
+      merchant: string
+    }) => {
+      if (!wallet.ensName || !wallet.address) return null
+
+      const proof = createCashbackProof({
+        ensName: wallet.ensName,
+        suiAddress: wallet.address,
+        sourceChainId: params.sourceChainId,
+        sourceTxHash: params.sourceTxHash,
+        sourceAsset: params.sourceAsset,
+        cashbackAmount: params.cashbackAmount,
+        destChainId: wallet.preferences?.chainId || 101,
+        destAsset: wallet.preferences?.asset || "sui",
+        merchant: params.merchant,
+        zkProofHash: sui.wallet.zkProof || undefined,
+      })
+
+      return uploadCashbackProof(proof)
+    },
+    [wallet.ensName, wallet.address, wallet.preferences, sui.wallet.zkProof]
+  )
+
+  // ------ Omnipin Sweep ------
+
+  const checkSweep = useCallback(
+    async (
+      balances: Array<{
+        chainId: number
+        tokenAddress: string
+        amount: string
+        amountUSD: number
+      }>
+    ) => {
+      if (!wallet.address || !wallet.preferences) return []
+
+      return evaluateOmnipinSweep(balances, wallet.address, wallet.preferences)
+    },
+    [wallet.address, wallet.preferences]
+  )
 
   return (
-    <WalletContext.Provider value={{ wallet, connect, disconnect, isConnecting }}>
+    <WalletContext.Provider
+      value={{
+        wallet,
+        connect,
+        disconnect,
+        isConnecting,
+        linkEnsName,
+        updatePreferences,
+        getClaimRoute,
+        recordCashback,
+        checkSweep,
+      }}
+    >
       {children}
     </WalletContext.Provider>
   )
 }
 
-export function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+// ---------------------------------------------------------------------------
+// Top-Level Provider (exported)
+// ---------------------------------------------------------------------------
+
+export function Web3Provider({ children }: { children: ReactNode }) {
+  return (
+    <SuiProvider>
+      <WalletOrchestrator>{children}</WalletOrchestrator>
+    </SuiProvider>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Re-exports for backward compatibility
+// ---------------------------------------------------------------------------
+
+export { formatSuiAddress as formatAddress }
+export { SUPPORTED_CHAINS, SUPPORTED_ASSETS }
+
+// Legacy function stubs (kept for pages that import them directly)
+export async function claimRewards(amount: bigint): Promise<void> {
+  console.log("[Legacy] claimRewards called with:", amount.toString())
+}
+
+export async function generateIdentityProof(provider: string): Promise<string> {
+  console.log("[Legacy] generateIdentityProof called with:", provider)
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  return `zkp_${provider}_${Date.now().toString(16)}`
+}
+
+export async function activateMerchant(merchantId: string): Promise<void> {
+  console.log("[Legacy] activateMerchant called with:", merchantId)
+}
+
+export async function getRewardsBalance(): Promise<bigint> {
+  return BigInt("1234000000000")
 }

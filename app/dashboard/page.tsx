@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Header } from "@/components/header"
 import { useWallet } from "@/lib/web3-providers"
+import { useSui } from "@/lib/sui-client"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { GlowingEffect } from "@/components/ui/glowing-effect"
@@ -17,16 +18,21 @@ import {
   Sparkles,
   Eye,
   EyeOff,
+  Globe,
+  Link2,
+  Layers,
 } from "lucide-react"
 import Link from "next/link"
-import Footer from "@/components/footer" // Declare the Footer variable
+import { Footer } from "@/components/footer"
 
 export default function DashboardPage() {
-  const { wallet } = useWallet()
+  const { wallet, linkEnsName } = useWallet()
+  const sui = useSui()
   const router = useRouter()
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
+  const [cashbackBalance, setCashbackBalance] = useState("0")
 
-  // Mock data - in production this would come from API
+  // Mock data - in production these come from Sui contract + LI.FI
   const totalInvested = 2847.50
   const growthGenerated = 234.18
   const growthPercentage = 8.23
@@ -39,6 +45,13 @@ export default function DashboardPage() {
     }
   }, [wallet.isConnected, router])
 
+  // Fetch cashback balance from Sui
+  useEffect(() => {
+    if (wallet.isConnected) {
+      sui.getCashbackBalance().then(setCashbackBalance)
+    }
+  }, [wallet.isConnected, sui])
+
   if (!wallet.isConnected) {
     return null
   }
@@ -47,16 +60,72 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1 container px-4 md:px-6 py-8 space-y-8">
+      <main className="flex-1 container px-4 md:px-6 py-8 space-y-8 animate-fade-in-up">
         {/* Welcome Section */}
         <div className="space-y-3">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground tracking-tight">
-            Welcome back
+            {wallet.ensName ? (
+              <>Welcome, <span className="text-primary">{wallet.ensName}</span></>
+            ) : (
+              "Welcome back"
+            )}
           </h1>
           <p className="text-lg text-muted-foreground">
             Here's how your money is working for you
           </p>
         </div>
+
+        {/* ENS Status Banner */}
+        {!wallet.ensName && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">Link your ENS name</p>
+                  <p className="text-xs text-muted-foreground">
+                    Configure where and how you receive cashback via Custom Text Records
+                  </p>
+                </div>
+              </div>
+              <Link href="/verify">
+                <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Configure
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ENS Preferences Summary */}
+        {wallet.preferences && wallet.ensName && (
+          <Card className="bg-card border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Payment Profile</p>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      Chain: {wallet.preferences.chainId || "—"} | 
+                      Asset: {wallet.preferences.asset || "—"} | 
+                      Pool: {wallet.preferences.pool || "—"}
+                    </p>
+                  </div>
+                </div>
+                <Link href="/verify">
+                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90 bg-transparent">
+                    Edit
+                    <ArrowUpRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Balance Card */}
         <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative">
@@ -90,10 +159,17 @@ export default function DashboardPage() {
                   </p>
                 )}
               </div>
-              <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                Active
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  Active
+                </Badge>
+                {wallet.provider && (
+                  <Badge variant="outline" className="border-border text-muted-foreground text-xs">
+                    zkLogin ({wallet.provider})
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Growth Card - The glowing element */}
@@ -114,15 +190,15 @@ export default function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Sparkles className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-medium text-primary">Growth Generated</p>
+                        <p className="text-sm font-medium text-primary">Cashback Balance (Sui)</p>
                       </div>
                       {isBalanceVisible ? (
                         <p className="font-display text-3xl font-bold text-primary">
-                          +${growthGenerated.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {cashbackBalance} SUI
                         </p>
                       ) : (
                         <p className="font-display text-3xl font-bold text-primary">
-                          +$•••••
+                          •••••• SUI
                         </p>
                       )}
                     </div>
@@ -141,7 +217,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger-children">
           <div className="relative rounded-[1rem] border-[0.75px] border-border p-2">
             <GlowingEffect
               spread={40}
@@ -212,11 +288,11 @@ export default function DashboardPage() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <Globe className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Avg. Return</p>
-                    <p className="font-display text-xl font-bold text-foreground">8.2%</p>
+                    <p className="text-xs text-muted-foreground mb-1">Chains Active</p>
+                    <p className="font-display text-xl font-bold text-foreground">5</p>
                   </div>
                 </div>
               </CardContent>
@@ -246,7 +322,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">Target</p>
-                    <p className="text-xs text-muted-foreground">Purchase • 2 hours ago</p>
+                    <p className="text-xs text-muted-foreground">Purchase on Base &bull; Bridged via LI.FI</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -261,8 +337,8 @@ export default function DashboardPage() {
                     <TrendingUp className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Growth Earned</p>
-                    <p className="text-xs text-muted-foreground">Interest • 1 day ago</p>
+                    <p className="text-sm font-medium text-foreground">Yield Earned</p>
+                    <p className="text-xs text-muted-foreground">Sui Pool &bull; Auto-invested</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -274,16 +350,16 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <ShoppingBag className="h-5 w-5 text-primary" />
+                    <Globe className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Whole Foods</p>
-                    <p className="text-xs text-muted-foreground">Purchase • 2 days ago</p>
+                    <p className="text-sm font-medium text-foreground">Omnipin Sweep</p>
+                    <p className="text-xs text-muted-foreground">Arbitrum → Sui &bull; $15.30 USDC</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium text-foreground">$143.22</p>
-                  <p className="text-xs text-primary">+$7.16 cashback</p>
+                  <p className="text-sm font-medium text-foreground">Completed</p>
+                  <p className="text-xs text-muted-foreground">2 min ago</p>
                 </div>
               </div>
             </div>
@@ -298,24 +374,28 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3">
                   <ArrowDownRight className="h-5 w-5" />
                   <div className="text-left">
-                    <p className="font-semibold">Withdraw Funds</p>
-                    <p className="text-xs opacity-90">Available: ${growthGenerated.toFixed(2)}</p>
+                    <p className="font-semibold">Claim Rewards</p>
+                    <p className="text-xs opacity-90">Available: {cashbackBalance} SUI</p>
                   </div>
                 </div>
               </Button>
-              <Button variant="outline" className="h-auto py-4 border-border hover:bg-card bg-transparent justify-start">
-                <div className="flex items-center gap-3">
-                  <TrendingUp className="h-5 w-5" />
-                  <div className="text-left">
-                    <p className="font-semibold">View Performance</p>
-                    <p className="text-xs text-muted-foreground">See detailed breakdown</p>
+              <Link href="/verify" className="block">
+                <Button variant="outline" className="w-full h-auto py-4 border-border hover:bg-card bg-transparent justify-start">
+                  <div className="flex items-center gap-3">
+                    <Layers className="h-5 w-5" />
+                    <div className="text-left">
+                      <p className="font-semibold">Configure Payment Profile</p>
+                      <p className="text-xs text-muted-foreground">ENS Text Records & preferences</p>
+                    </div>
                   </div>
-                </div>
-              </Button>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
       </main>
+
+      <Footer />
     </div>
   )
 }

@@ -236,11 +236,11 @@ export function CashbackCard({
 
             {/* Card info */}
             <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 right-6 md:right-8 text-white text-[10px] md:text-xs space-y-2 opacity-70">
-              <p>Powered by Sui Network blockchain</p>
-              <p>Support: cashback.id/help</p>
+              <p>ENS Identity + LI.FI Cross-Chain + Sui Settlement</p>
+              <p>cashbackid.* — Your name, your rules, your cashback</p>
               <p className="text-[9px] md:text-[10px]">
-                Your purchases are secure and private. Cashback automatically 
-                invested in verified yield pools.
+                Spend on any chain, receive on your name. Cashback routed via 
+                LI.FI and settled on Sui with sub-second finality.
               </p>
             </div>
           </motion.div>
