@@ -75,6 +75,8 @@ const CASHBACK_PACKAGE_ID =
 const CASHBACK_MODULE = "cashback"
 const PROFILE_MODULE = "profile"
 
+const SESSION_STORAGE_KEYPAIR_KEY = "cashbackid_sui_keypair"
+
 // ---------------------------------------------------------------------------
 // Sui Client singleton
 // ---------------------------------------------------------------------------
@@ -160,19 +162,32 @@ export function SuiProvider({ children }: { children: ReactNode }) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [keypair, setKeypair] = useState<Ed25519Keypair | null>(null)
 
-  // Restore session from localStorage
+  // Restore session from localStorage and keypair from sessionStorage (so refresh keeps signing ability)
   useEffect(() => {
     const saved = localStorage.getItem("cashbackid_sui_session")
     if (saved) {
       try {
         const session = JSON.parse(saved)
+        const address = session.address
         setWallet({
           isConnected: true,
-          address: session.address,
+          address,
           balance: session.balance || "0",
           provider: session.provider,
           zkProof: session.zkProof,
         })
+        // Restore keypair from sessionStorage so "Create profile" works after refresh
+        const kpSaved = typeof window !== "undefined" ? sessionStorage.getItem(SESSION_STORAGE_KEYPAIR_KEY) : null
+        if (kpSaved && address) {
+          try {
+            const { address: savedAddr, secretKey } = JSON.parse(kpSaved)
+            if (savedAddr === address && secretKey) {
+              setKeypair(Ed25519Keypair.fromSecretKey(secretKey))
+            }
+          } catch {
+            sessionStorage.removeItem(SESSION_STORAGE_KEYPAIR_KEY)
+          }
+        }
       } catch {
         localStorage.removeItem("cashbackid_sui_session")
       }
@@ -208,6 +223,17 @@ export function SuiProvider({ children }: { children: ReactNode }) {
             balance: "0",
           })
         )
+        // Persist keypair in sessionStorage so refresh doesn't lose signing (cleared when tab closes)
+        try {
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem(
+              SESSION_STORAGE_KEYPAIR_KEY,
+              JSON.stringify({ address, secretKey: kp.getSecretKey() })
+            )
+          }
+        } catch {
+          // ignore
+        }
 
         console.log(`[Sui] zkLogin connected: ${address}`)
 
@@ -242,6 +268,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
     })
     setKeypair(null)
     localStorage.removeItem("cashbackid_sui_session")
+    if (typeof window !== "undefined") sessionStorage.removeItem(SESSION_STORAGE_KEYPAIR_KEY)
   }, [])
 
   const refreshBalance = useCallback(async () => {

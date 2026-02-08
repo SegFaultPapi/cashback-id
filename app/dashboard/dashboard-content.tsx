@@ -360,10 +360,10 @@ export default function DashboardContent() {
       <Header />
 
       <main className="flex-1 container px-4 md:px-6 py-6 md:py-8 max-w-full min-w-0">
-        <div className="mb-6">
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+        <div className="mb-6 min-w-0">
+          <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight break-words">
             {wallet.ensName ? (
-              <>Welcome, <span className="text-primary">{wallet.ensName}</span></>
+              <>Welcome, <span className="text-primary break-all">{wallet.ensName}</span></>
             ) : (
               "Welcome back"
             )}

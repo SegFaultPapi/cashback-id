@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils"
 type Step = "ens" | "preferences" | "confirm" | "success"
 
 export default function VerifyPage() {
-  const { wallet, linkEnsName, updatePreferences, setPreferencesViaApi, createProfile, getProfileId } = useWallet()
+  const { wallet, connect, isConnecting, linkEnsName, updatePreferences, setPreferencesViaApi, createProfile, getProfileId } = useWallet()
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>("ens")
   const [ensInput, setEnsInput] = useState(wallet.ensName || "")
@@ -437,7 +437,7 @@ export default function VerifyPage() {
                     <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-700 dark:text-amber-400">
                       <p className="font-medium">You need SUI for gas</p>
                       <p className="mt-1 text-muted-foreground">
-                        On testnet, get free SUI from the faucet and try again.
+                        The <strong>Sui Settlement Address</strong> below (your address from sign-in) pays for this transaction. Send testnet SUI to that address from the faucet, then try again.
                       </p>
                       <a
                         href="https://faucet.sui.io/"
@@ -450,7 +450,35 @@ export default function VerifyPage() {
                     </div>
                   )}
                   {profileError && profileError !== "gas" && (
-                    <p className="text-sm text-destructive">{profileError}</p>
+                    <div className="space-y-2">
+                      <p className="text-sm text-destructive">
+                        {profileError === "Wallet not connected"
+                          ? "Your session was restored but the signing key is not available. Sign in again below to create a profile."
+                          : profileError}
+                      </p>
+                      {profileError === "Wallet not connected" && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={isConnecting}
+                          onClick={() => {
+                            setProfileError(null)
+                            connect("google")
+                          }}
+                          className="text-foreground"
+                        >
+                          {isConnecting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Signing in...
+                            </>
+                          ) : (
+                            "Sign in again"
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
