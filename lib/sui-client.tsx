@@ -80,6 +80,7 @@ export function getSuiClient(): SuiJsonRpcClient {
   if (!_suiClient) {
     _suiClient = new SuiJsonRpcClient({
       url: process.env.NEXT_PUBLIC_SUI_RPC_URL || getJsonRpcFullnodeUrl(SUI_NETWORK),
+      network: SUI_NETWORK,
     })
   }
   return _suiClient

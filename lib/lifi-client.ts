@@ -10,7 +10,7 @@
  * This module targets the "Best Use of LI.FI Composer" track.
  */
 
-import { getRoutes, getQuote, getStatus, type Route, type Step } from "@lifi/sdk"
+import { getRoutes, getQuote, getStatus, convertQuoteToRoute, type Route, type Step } from "@lifi/sdk"
 import type { CashbackPreferences } from "./ens-resolver"
 
 // ---------------------------------------------------------------------------
@@ -212,16 +212,18 @@ export async function getCashbackQuote(
       fromAddress: request.fromAddress,
       toChain: request.toChainId,
       toToken: request.toTokenAddress,
-      toAddress: request.toAddress,
       slippage: 0.005,
     })
 
+    const route = convertQuoteToRoute(quote)
+    const step = quote
+    const est = step.estimate
     return {
-      route: quote as unknown as Route,
-      estimatedOutput: quote.estimate?.toAmountMin || quote.estimate?.toAmount || "0",
-      estimatedGasCostUSD: quote.estimate?.gasCosts?.[0]?.amountUSD || "0",
-      estimatedTimeSeconds: quote.estimate?.executionDuration || 0,
-      summary: `Route via ${quote.toolDetails?.name || "LI.FI"} — est. ${Math.ceil((quote.estimate?.executionDuration || 60) / 60)} min`,
+      route,
+      estimatedOutput: est?.toAmountMin || est?.toAmount || "0",
+      estimatedGasCostUSD: est?.gasCosts?.[0]?.amountUSD || "0",
+      estimatedTimeSeconds: est?.executionDuration || 0,
+      summary: `Route via ${step.toolDetails?.name || step.tool || "LI.FI"} — est. ${Math.ceil((est?.executionDuration || 60) / 60)} min`,
     }
   } catch (error) {
     console.error("[LI.FI] Failed to get quote:", error)
