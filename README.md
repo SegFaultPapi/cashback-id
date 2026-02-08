@@ -1,112 +1,112 @@
 # Cashback ID
 
-Plataforma de **cashback cross-chain** que combina **ENS** (identidad y preferencias de pago), **Sui** (perfiles y liquidación) y **LI.FI** (bridges). Los usuarios obtienen un nombre tipo `you.cashbackid.eth`, configuran cómo quieren recibir pagos y pueden enviar/recibir cashback en SUI.
+**Cross-chain cashback** platform combining **ENS** (identity and payment preferences), **Sui** (profiles and settlement), and **LI.FI** (bridges). Users get a name like `you.cashbackid.eth`, configure how they want to receive payments, and can send or receive cashback in SUI.
 
 ---
 
 ## Stack
 
-| Capa        | Tecnología                          |
-|------------|--------------------------------------|
-| Frontend   | Next.js 16, React 19, Tailwind CSS   |
-| Wallet     | Sui (zkLogin-style), @mysten/dapp-kit |
-| Identidad  | ENS (resolve, subdominios `.cashbackid.eth`) |
-| Backend    | API Routes (claim subdomain, set preferences, pay, create-profile) |
-| Blockchain | Sui (testnet/mainnet), contrato tipo Hackmoney (profile + checkout) |
-| Opcional   | LI.FI (rutas, sweep), Filecoin (proofs) |
+| Layer      | Technology                           |
+|-----------|---------------------------------------|
+| Frontend  | Next.js 16, React 19, Tailwind CSS    |
+| Wallet    | Sui (zkLogin-style), @mysten/dapp-kit |
+| Identity  | ENS (resolve, subdomains `.cashbackid.eth`) |
+| Backend   | API Routes (claim subdomain, set preferences, pay, create-profile) |
+| Blockchain| Sui (testnet/mainnet), Hackmoney-style contract (profile + checkout) |
+| Optional  | LI.FI (routes, sweep), Filecoin (proofs) |
 
 ---
 
-## Características
+## Features
 
-- **Landing** → Conexión con wallet (flujo tipo zkLogin simulado).
-- **Dashboard** → Resumen, pestañas Pay y Activity, balance cashback en SUI.
-- **ENS gratuito** → Reclamar `you.cashbackid.eth` (sin pago ni firma); preferencias guardadas vía API.
-- **Verify / Perfil** → Vincular ENS existente o usar subdominio; crear perfil en Sui; definir chain, asset y pool.
-- **Pay** → Resolver ENS (incl. `.cashbackid.eth`), indicar monto y enviar pago; el cashback se acredita al perfil del destinatario.
-- **Recibir pagos** → Compartir enlace `/pay?to=you.cashbackid.eth` para que terceros paguen y el cashback llegue a tu perfil.
-- **Rewards** → Ver balance y reclamar recompensas en SUI.
-- **Leaderboard** → Ranking de usuarios (datos mock).
+- **Landing** → Wallet connect (simulated zkLogin-style flow).
+- **Dashboard** → Overview, Pay and Activity tabs, cashback balance in SUI.
+- **Free ENS** → Claim `you.cashbackid.eth` (no payment or signing); preferences saved via API.
+- **Verify / Profile** → Link existing ENS or use subdomain; create Sui profile; set chain, asset, and pool.
+- **Pay** → Resolve ENS (incl. `.cashbackid.eth`), enter amount and send payment; cashback is credited to the recipient’s profile.
+- **Receive payments** → Share link `/pay?to=you.cashbackid.eth` so others can pay and cashback goes to your profile.
+- **Rewards** → View balance and claim rewards in SUI.
+- **Leaderboard** → User ranking (mock data).
 
 ---
 
-## Flujos del usuario (Mermaid)
+## User flows (Mermaid)
 
-### 1. Flujo general: de la landing al uso
+### 1. General flow: landing to usage
 
 ```mermaid
 flowchart LR
-  A[Landing] -->|Conectar wallet| B{Dashboard}
+  A[Landing] -->|Connect wallet| B{Dashboard}
   B --> C[Overview]
   B --> D[Pay]
   B --> E[Activity]
-  B --> F[Verify / Perfil]
+  B --> F[Verify / Profile]
   B --> G[Rewards]
-  F --> H[Crear perfil Sui]
-  F --> I[Configurar preferencias]
-  D --> J[Resolver ENS]
-  J --> K[Enviar pago]
-  K --> L[Cashback acreditado]
+  F --> H[Create Sui profile]
+  F --> I[Set preferences]
+  D --> J[Resolve ENS]
+  J --> K[Send payment]
+  K --> L[Cashback credited]
 ```
 
-### 2. Onboarding: identidad y perfil
+### 2. Onboarding: identity and profile
 
 ```mermaid
 flowchart TD
-  Start([Usuario conectado]) --> A{Tiene ENS?}
-  A -->|No| B[Reclamar you.cashbackid.eth]
-  A -->|Sí| C[Vincular ENS existente]
-  B --> D[Ir a Verify]
+  Start([User connected]) --> A{Has ENS?}
+  A -->|No| B[Claim you.cashbackid.eth]
+  A -->|Yes| C[Link existing ENS]
+  B --> D[Go to Verify]
   C --> D
-  D --> E{Perfil Sui?}
-  E -->|No| F[Crear perfil - firma + gas]
-  E -->|Sí| G[Configurar preferencias]
+  D --> E{Sui profile?}
+  E -->|No| F[Create profile - sign and gas]
+  E -->|Yes| G[Set preferences]
   F --> G
-  G --> H[Guardar vía API]
-  H --> I([Listo para recibir pagos])
+  G --> H[Save via API]
+  H --> I([Ready to receive payments])
 ```
 
-### 3. Enviar un pago (Pay)
+### 3. Send a payment (Pay)
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuario
+  participant U as User
   participant App as App
   participant API as API / ENS
   participant Sui as Sui (checkout)
 
-  U->>App: Introduce ENS + monto
-  App->>API: Resolver ENS (resolve / api/ens/resolve)
-  API-->>App: profileId, preferencias
-  App->>App: Muestra "Perfil encontrado"
-  U->>App: Confirmar envío
+  U->>App: Enter ENS and amount
+  App->>API: Resolve ENS (resolve / api/ens/resolve)
+  API-->>App: profileId, preferences
+  App->>App: Show Profile found
+  U->>App: Confirm send
   App->>API: POST /api/pay (profileId, amount)
-  API->>Sui: process_payment (servidor firma)
+  API->>Sui: process_payment (server signs)
   Sui-->>API: digest
   API-->>App: digest
-  App-->>U: "Pago enviado"; cashback al destinatario
+  App-->>U: Payment sent, cashback to recipient
 ```
 
-### 4. Verificar y configurar perfil (Verify)
+### 4. Verify and configure profile (Verify)
 
 ```mermaid
 flowchart TD
-  V([Verify]) --> S1[Paso 1: ENS]
-  S1 -->|Subdominio .cashbackid.eth| API1[POST /api/ens/claim-subdomain]
-  S1 -->|ENS existente| Link[linkEnsName]
-  API1 --> S2[Paso 2: Preferencias]
+  V([Verify]) --> S1[Step 1: ENS]
+  S1 -->|Subdomain .cashbackid.eth| API1[POST /api/ens/claim-subdomain]
+  S1 -->|Existing ENS| Link[linkEnsName]
+  API1 --> S2[Step 2: Preferences]
   Link --> S2
-  S2 --> Profile{¿Perfil Sui?}
-  Profile -->|No| Create[Crear perfil - createProfile]
-  Profile -->|Sí| Prefs[Chain, Asset, Pool, threshold]
+  S2 --> Profile{Sui profile?}
+  Profile -->|No| Create[Create profile - createProfile]
+  Profile -->|Yes| Prefs[Chain, Asset, Pool, threshold]
   Create --> Prefs
-  Prefs -->|Subdominio| API2[POST /api/ens/set-preferences]
-  Prefs -->|ENS on-chain| Tx[Construir tx / firmar]
-  API2 --> Success([Listo])
+  Prefs -->|Subdomain| API2[POST /api/ens/set-preferences]
+  Prefs -->|ENS on-chain| Tx[Build tx / sign]
+  API2 --> Success([Done])
   Tx --> Success
 ```
 
-### 5. Arquitectura de alto nivel
+### 5. High-level architecture
 
 ```mermaid
 flowchart TB
@@ -126,7 +126,7 @@ flowchart TB
     PayAPI[pay]
   end
 
-  subgraph External["Externos"]
+  subgraph External["External"]
     ENS[ENS / Ethereum]
     Sui[Sui Network]
     LiFi[LI.FI]
@@ -151,47 +151,47 @@ flowchart TB
 
 ---
 
-## Cómo ejecutar el proyecto
+## Getting started
 
-### Requisitos
+### Requirements
 
 - Node.js 18+
-- pnpm (recomendado) o npm
+- pnpm (recommended) or npm
 
-### Instalación
+### Install
 
 ```bash
 pnpm install
-# o
+# or
 npm install
 ```
 
-### Variables de entorno
+### Environment variables
 
-Copia `.env.example` a `.env.local` y rellena lo necesario:
+Copy `.env.example` to `.env.local` and fill in as needed:
 
 ```bash
 cp .env.example .env.local
 ```
 
-| Variable | Descripción |
+| Variable | Description |
 |----------|-------------|
-| `SUI_PRIVATE_KEY` | Clave privada del servidor (base64) para firmar create-profile y pay. |
-| `NEXT_PUBLIC_CASHBACK_PACKAGE_ID` | (Opcional) ID del package Move en Sui; por defecto se usa el de GA-Asso/Hackmoney en testnet. |
-| `NEXT_PUBLIC_SUI_NETWORK` | `testnet` o `mainnet`. |
-| `NEXT_PUBLIC_ETH_RPC_URL` | (Opcional) RPC de Ethereum para resolver ENS. |
+| `SUI_PRIVATE_KEY` | Server private key (base64) to sign create-profile and pay. |
+| `NEXT_PUBLIC_CASHBACK_PACKAGE_ID` | (Optional) Sui Move package ID; defaults to GA-Asso/Hackmoney on testnet. |
+| `NEXT_PUBLIC_SUI_NETWORK` | `testnet` or `mainnet`. |
+| `NEXT_PUBLIC_ETH_RPC_URL` | (Optional) Ethereum RPC for ENS resolution. |
 
-Para que **Pay** funcione, la wallet asociada a `SUI_PRIVATE_KEY` debe tener SUI suficiente para gas.
+For **Pay** to work, the wallet for `SUI_PRIVATE_KEY` must have enough SUI for gas.
 
-### Desarrollo
+### Development
 
 ```bash
 pnpm dev
-# o
+# or
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000).
 
 ### Build
 
@@ -202,19 +202,19 @@ pnpm start
 
 ---
 
-## Estructura del proyecto
+## Project structure
 
 ```
 ├── app/
 │   ├── page.tsx              # Landing
 │   ├── layout.tsx
 │   ├── dashboard/            # Dashboard (Overview, Pay, Activity)
-│   ├── verify/               # Perfil / ENS / preferencias
-│   ├── pay/                  # Página de pago (ENS + monto)
-│   ├── rewards/              # Reclamar recompensas
+│   ├── verify/               # Profile / ENS / preferences
+│   ├── pay/                  # Pay page (ENS + amount)
+│   ├── rewards/              # Claim rewards
 │   ├── leaderboard/
 │   └── api/                  # claim-subdomain, set-preferences, resolve, create-profile, pay
-├── components/               # UI y layout (Header, BottomNav, AppShell, etc.)
+├── components/               # UI and layout (Header, BottomNav, AppShell, etc.)
 ├── lib/                      # web3-providers, sui-client, ens-resolver, ens-subdomain-store, api-validate, etc.
 ├── docs/                     # IMPLEMENTATION_PLAN, MVP_CHECKLIST, ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS
 ├── .env.example
@@ -223,14 +223,14 @@ pnpm start
 
 ---
 
-## Documentación adicional
+## Further documentation
 
-- [docs/MVP_CHECKLIST.md](docs/MVP_CHECKLIST.md) — Estado del MVP y requisitos para que funcione end-to-end.
-- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Plan de implementación y uso del contrato Sui (Hackmoney).
-- [docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md](docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md) — Registros ENS y subdominios `.cashbackid.eth`.
+- [docs/MVP_CHECKLIST.md](docs/MVP_CHECKLIST.md) — MVP status and requirements for end-to-end flow.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Implementation plan and Sui contract usage (Hackmoney).
+- [docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md](docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md) — ENS records and `.cashbackid.eth` subdomains.
 
 ---
 
-## Licencia
+## License
 
-Proyecto privado.
+Private project.
