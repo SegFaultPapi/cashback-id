@@ -52,8 +52,8 @@ export interface SuiContextType {
   getCashbackBalance: () => Promise<string>
   /** Claim accumulated cashback rewards */
   claimRewards: (amount: string) => Promise<string>
-  /** Create a CashbackProfile on Sui (Move: profile::create_and_transfer_to_sender); returns profileId */
-  createProfile: () => Promise<string>
+  /** Create a CashbackProfile on Sui (Move: profile::create_and_transfer_to_sender); returns profileId and tx digest */
+  createProfile: () => Promise<{ profileId: string; digest: string }>
   /** Get the user's CashbackProfile object ID if they have one */
   getProfileId: () => Promise<string | null>
 }
@@ -334,7 +334,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
     }
   }, [wallet.address, client])
 
-  const createProfile = useCallback(async (): Promise<string> => {
+  const createProfile = useCallback(async (): Promise<{ profileId: string; digest: string }> => {
     if (!wallet.address || !keypair) throw new Error("Wallet not connected")
     const tx = new Transaction()
     tx.setGasBudget(100_000_000)
@@ -348,6 +348,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
         transaction: tx,
         options: { showEffects: true, showObjectChanges: true },
       })
+      const digest = result.digest ?? ""
       const created = result.objectChanges?.find(
         (c: { type?: string; objectType?: string }) =>
           c.type === "created" &&
@@ -356,7 +357,7 @@ export function SuiProvider({ children }: { children: ReactNode }) {
       ) as { objectId: string } | undefined
       const profileId = created?.objectId
       if (!profileId) throw new Error("Profile not found in tx result")
-      return profileId
+      return { profileId, digest }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (/gas|insufficient|No valid gas coins/i.test(msg)) {

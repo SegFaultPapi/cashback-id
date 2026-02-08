@@ -119,8 +119,8 @@ export interface WalletContextType {
       amountUSD: number
     }>
   ) => Promise<OmnipinSweepResult[]>
-  /** Create CashbackProfile on Sui (user signs); returns profileId */
-  createProfile: () => Promise<string>
+  /** Create CashbackProfile on Sui (user signs); returns profileId and tx digest */
+  createProfile: () => Promise<{ profileId: string; digest: string }>
   /** Get current user's Sui CashbackProfile object ID */
   getProfileId: () => Promise<string | null>
 }
@@ -319,7 +319,11 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
         const res = await fetch("/api/ens/set-preferences", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ suiAddress: wallet.address, preferences: prefs }),
+          body: JSON.stringify({
+            ensName: wallet.ensName ?? undefined,
+            suiAddress: wallet.address,
+            preferences: prefs,
+          }),
         })
         if (!res.ok) return false
         setWallet((prev) => ({

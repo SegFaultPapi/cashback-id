@@ -48,6 +48,7 @@ export default function VerifyPage() {
   )
   const [isCreatingProfile, setIsCreatingProfile] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileTxDigest, setProfileTxDigest] = useState<string | null>(null)
 
   // Preference form state
   const [selectedChain, setSelectedChain] = useState<string>(
@@ -111,10 +112,12 @@ export default function VerifyPage() {
 
   const handleCreateProfile = async () => {
     setProfileError(null)
+    setProfileTxDigest(null)
     setIsCreatingProfile(true)
     try {
-      const id = await createProfile()
-      setProfileIdFromSui(id)
+      const { profileId, digest } = await createProfile()
+      setProfileIdFromSui(profileId)
+      setProfileTxDigest(digest)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       if (msg === "GAS_NEEDED") {
@@ -478,6 +481,24 @@ export default function VerifyPage() {
                           )}
                         </Button>
                       )}
+                    </div>
+                  )}
+                  {profileTxDigest && (
+                    <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-sm text-foreground">
+                      <p className="font-medium flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        Profile created on Sui
+                      </p>
+                      <p className="mt-1 text-muted-foreground">Profile ID: <span className="font-mono text-foreground">{displayProfileId}</span></p>
+                      <a
+                        href={`https://suiexplorer.com/txblock/${profileTxDigest}?network=${process.env.NEXT_PUBLIC_SUI_NETWORK || "testnet"}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-primary hover:underline font-medium"
+                      >
+                        View transaction on Sui Explorer
+                        <ArrowRight className="h-3 w-3" />
+                      </a>
                     </div>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import {
   getSubdomain,
   setStoredPreferences,
+  isOurSubdomain,
   type StoredPreferences,
 } from "@/lib/ens-subdomain-store"
 import { validateSuiAddress } from "@/lib/api-validate"
@@ -9,24 +10,39 @@ import { validateSuiAddress } from "@/lib/api-validate"
 /**
  * POST /api/ens/set-preferences
  * Guarda preferencias para el subdominio cashbackid.eth del usuario.
- * Body: { suiAddress: string, preferences: { chainId?, asset?, profileId?, ... } }
+ * Body: { ensName?: string, suiAddress?: string, preferences: { chainId?, asset?, profileId?, ... } }
+ * If ensName is provided and is a claimed subdomain, save by ENS name (works even if wallet address changed).
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
+    const ensName = typeof body.ensName === "string" ? body.ensName.trim().toLowerCase() : ""
     const suiAddress = typeof body.suiAddress === "string" ? body.suiAddress.trim() : ""
     const preferences = body.preferences && typeof body.preferences === "object" ? body.preferences : {}
 
-    const addrCheck = validateSuiAddress(suiAddress)
-    if (!addrCheck.ok) {
-      return NextResponse.json({ error: addrCheck.error }, { status: 400 })
+    let targetEnsName: string | null = null
+
+    if (ensName && ensName.endsWith(".cashbackid.eth") && isOurSubdomain(ensName)) {
+      targetEnsName = ensName
+    } else if (suiAddress) {
+      const addrCheck = validateSuiAddress(suiAddress)
+      if (!addrCheck.ok) {
+        return NextResponse.json({ error: addrCheck.error }, { status: 400 })
+      }
+      const entry = getSubdomain(suiAddress)
+      if (!entry) {
+        return NextResponse.json(
+          { error: "No subdomain claimed for this address. Claim one first." },
+          { status: 404 }
+        )
+      }
+      targetEnsName = entry.ensName
     }
 
-    const entry = getSubdomain(suiAddress)
-    if (!entry) {
+    if (!targetEnsName) {
       return NextResponse.json(
-        { error: "No subdomain claimed for this address. Claim one first." },
-        { status: 404 }
+        { error: "Provide ensName (your subdomain) or suiAddress to save preferences." },
+        { status: 400 }
       )
     }
 
@@ -38,9 +54,9 @@ export async function POST(request: Request) {
     if (preferences.threshold != null) prefs.threshold = Number(preferences.threshold)
     if (preferences.profileId != null) prefs.profileId = String(preferences.profileId)
 
-    setStoredPreferences(entry.ensName, prefs)
+    setStoredPreferences(targetEnsName, prefs)
 
-    return NextResponse.json({ ensName: entry.ensName, saved: true })
+    return NextResponse.json({ ensName: targetEnsName, saved: true })
   } catch (e) {
     console.error("[set-preferences]", e)
     return NextResponse.json({ error: "Failed to save preferences" }, { status: 500 })
