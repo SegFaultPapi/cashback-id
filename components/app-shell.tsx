@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { usePathname } from "next/navigation"
 import { BottomNav } from "@/components/bottom-nav"
 
@@ -12,7 +13,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <div className={showBottomNav ? "pb-20 md:pb-0" : ""}>{children}</div>
-      {showBottomNav && <BottomNav />}
+      {showBottomNav && (
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
+      )}
     </>
   )
 }
