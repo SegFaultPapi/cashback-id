@@ -4,6 +4,8 @@ import { Inter, JetBrains_Mono, DM_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Web3Provider } from "@/lib/web3-providers"
 import { AppShell } from "@/components/app-shell"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"] })
@@ -45,11 +47,14 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" data-scroll-behavior="smooth" style={{ colorScheme: "dark" }}>
       <body className="font-sans antialiased min-h-screen bg-background text-foreground">
-        <Web3Provider>
-          <AppShell>{children}</AppShell>
-        </Web3Provider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <Web3Provider>
+            <AppShell>{children}</AppShell>
+          </Web3Provider>
+          <Toaster position="top-center" richColors closeButton />
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

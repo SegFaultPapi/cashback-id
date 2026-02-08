@@ -36,7 +36,7 @@ import {
 import { useEffect, useState } from "react"
 
 export default function LandingPage() {
-  const { wallet, connect, isConnecting } = useWallet()
+  const { wallet } = useWallet()
   const router = useRouter()
   const [heroOpacity, setHeroOpacity] = useState(1)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -102,11 +102,10 @@ export default function LandingPage() {
 
                 {/* Desktop CTA */}
                 <Button
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="hidden sm:flex px-6 py-2 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
                 >
-                  Get Started
+                  Iniciar sesión
                 </Button>
 
                 {/* Mobile menu toggle */}
@@ -132,11 +131,10 @@ export default function LandingPage() {
                   </a>
                   <div className="pt-2 border-t border-border/50">
                     <Button
-                      onClick={() => { connect("google"); setMobileMenuOpen(false) }}
-                      disabled={isConnecting}
+                      onClick={() => { router.push("/login"); setMobileMenuOpen(false) }}
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg"
                     >
-                      Sign In with Google
+                      Iniciar sesión
                     </Button>
                   </div>
                 </div>
@@ -160,27 +158,25 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
                 <Button
                   size="lg"
-                  onClick={() => connect("apple")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
                 >
                   <Apple className="mr-2 h-5 w-5" />
-                  Continue with Apple
+                  Continuar con Apple
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="w-full sm:w-auto border-border hover:bg-card h-14 px-10 bg-transparent text-base"
                 >
                   <Chrome className="mr-2 h-5 w-5" />
-                  Continue with Google
+                  Continuar con Google
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                One-tap signup. No complicated setup, no passwords to remember.
+                Te llevamos a la pantalla de inicio de sesión. Sin contraseñas.
               </p>
             </div>
           </div>
@@ -541,12 +537,11 @@ export default function LandingPage() {
             <div className="text-center pt-16">
               <Button
                 size="lg"
-                onClick={() => connect("google")}
-                disabled={isConnecting}
+                onClick={() => router.push("/login")}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
               >
                 <Sparkles className="mr-2 h-5 w-5" />
-                Start Earning
+                Empezar a ganar
               </Button>
             </div>
           </div>
@@ -785,12 +780,11 @@ export default function LandingPage() {
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
                 >
                   <ArrowUpRight className="mr-2 h-5 w-5" />
-                  Get Started
+                  Iniciar sesión
                 </Button>
               </CardContent>
             </Card>

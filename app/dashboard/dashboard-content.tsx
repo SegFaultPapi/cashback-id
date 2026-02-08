@@ -32,6 +32,7 @@ import {
   Download,
 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 import {
   Select,
   SelectContent,
@@ -82,6 +83,10 @@ export default function DashboardContent() {
   const [claimLabel, setClaimLabel] = useState("")
   const [isClaiming, setIsClaiming] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
+  const [claimTxHash, setClaimTxHash] = useState<string | null>(null)
+  const [claimOnChainError, setClaimOnChainError] = useState<string | null>(null)
+  const [pendingOnChainLabel, setPendingOnChainLabel] = useState<string | null>(null)
+  const [isRetryingOnChain, setIsRetryingOnChain] = useState(false)
 
   const [payEnsName, setPayEnsName] = useState("")
   const [payAmount, setPayAmount] = useState("")
@@ -106,6 +111,24 @@ export default function DashboardContent() {
   useEffect(() => {
     if (!wallet.isConnected) router.push("/")
   }, [wallet.isConnected, router])
+
+  useEffect(() => {
+    if (wallet.ensName && !pendingOnChainLabel) {
+      setClaimTxHash(null)
+      setClaimOnChainError(null)
+    }
+  }, [wallet.ensName, pendingOnChainLabel])
+
+  const tryRegisterOnChain = async (label: string) => {
+    const res = await fetch("/api/ens/register-onchain", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label }),
+    })
+    const data = await res.json()
+    return data.txHash ? { txHash: data.txHash } : { error: data.error || "Error al registrar on-chain" }
+  }
+
 
   useEffect(() => {
     if (wallet.isConnected) sui.getCashbackBalance().then(setCashbackBalance)
@@ -141,6 +164,7 @@ export default function DashboardContent() {
   const handleClaimSubdomain = async () => {
     if (!wallet.address) return
     setClaimError(null)
+    setClaimOnChainError(null)
     setIsClaiming(true)
     try {
       const res = await fetch("/api/ens/claim-subdomain", {
@@ -150,6 +174,49 @@ export default function DashboardContent() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Failed to claim")
+
+      if (data.registeredOnChain && data.txHash) {
+        setClaimTxHash(data.txHash)
+        await linkEnsName(data.ensName)
+        setClaimLabel("")
+        setIsClaiming(false)
+        toast.success("Registrado on-chain", {
+          description: `${data.ensName} está registrado en Ethereum.`,
+          action: {
+            label: "Ver transacción",
+            onClick: () => window.open(`https://etherscan.io/tx/${data.txHash}`, "_blank"),
+          },
+        })
+        return
+      }
+
+      if (!data.registeredOnChain) {
+        setPendingOnChainLabel(data.label)
+        setClaimOnChainError(data.onChainError || "No se pudo registrar on-chain.")
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const retry = await tryRegisterOnChain(data.label)
+          if (retry.txHash) {
+            setClaimTxHash(retry.txHash)
+            setPendingOnChainLabel(null)
+            setClaimOnChainError(null)
+            await linkEnsName(data.ensName)
+            setClaimLabel("")
+            setIsClaiming(false)
+            toast.success("Registrado on-chain", {
+              description: `${data.ensName} está registrado en Ethereum.`,
+              action: {
+                label: "Ver transacción",
+                onClick: () => window.open(`https://etherscan.io/tx/${retry.txHash}`, "_blank"),
+              },
+            })
+            return
+          }
+          if (retry.error) setClaimOnChainError(retry.error)
+        }
+        setIsClaiming(false)
+        return
+      }
+
       await linkEnsName(data.ensName)
       setClaimLabel("")
     } catch (e) {
@@ -157,6 +224,39 @@ export default function DashboardContent() {
     } finally {
       setIsClaiming(false)
     }
+  }
+
+  const handleRetryOnChain = async () => {
+    if (!pendingOnChainLabel) return
+    setClaimOnChainError(null)
+    setIsRetryingOnChain(true)
+    try {
+      const retry = await tryRegisterOnChain(pendingOnChainLabel)
+      if (retry.txHash) {
+        setClaimTxHash(retry.txHash)
+        setPendingOnChainLabel(null)
+        await linkEnsName(`${pendingOnChainLabel}.cashbackid.eth`)
+        toast.success("Registrado on-chain", {
+          description: `${pendingOnChainLabel}.cashbackid.eth está registrado en Ethereum.`,
+          action: {
+            label: "Ver transacción",
+            onClick: () => window.open(`https://etherscan.io/tx/${retry.txHash}`, "_blank"),
+          },
+        })
+      } else {
+        setClaimOnChainError(retry.error || "Error al registrar on-chain")
+      }
+    } finally {
+      setIsRetryingOnChain(false)
+    }
+  }
+
+  const handleContinueWithoutOnChain = async () => {
+    if (!pendingOnChainLabel) return
+    await linkEnsName(`${pendingOnChainLabel}.cashbackid.eth`)
+    setPendingOnChainLabel(null)
+    setClaimOnChainError(null)
+    setClaimLabel("")
   }
 
   const handlePay = async () => {
@@ -244,7 +344,7 @@ export default function DashboardContent() {
 
         <Tabs value={tabValue} onValueChange={handleTabChange} className="space-y-6">
           <TabsContent value="overview" className="space-y-6 mt-0">
-            {!wallet.ensName && (
+            {(!wallet.ensName || pendingOnChainLabel) && (
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-center gap-3">
@@ -252,25 +352,63 @@ export default function DashboardContent() {
                     <div>
                       <p className="text-sm font-medium text-foreground">Your free Cashback ID</p>
                       <p className="text-xs text-muted-foreground">
-                        Get a name like <span className="font-mono text-primary">you.cashbackid.eth</span> — no payment or signing required.
+                        Get a name like <span className="font-mono text-primary">you.cashbackid.eth</span> — no payment or signing required. Se registra en la app y on-chain en un solo paso.
                       </p>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        placeholder="your-name (optional)"
-                        value={claimLabel}
-                        onChange={(e) => setClaimLabel(e.target.value)}
-                        className="flex-1 min-w-[140px] h-9 bg-background border-border font-mono text-sm"
-                      />
-                      <Button size="sm" className="h-9 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground whitespace-nowrap" onClick={handleClaimSubdomain} disabled={isClaiming}>
-                        {isClaiming ? <><Sparkles className="mr-2 h-4 w-4 animate-pulse" />Creating...</> : <><Sparkles className="mr-2 h-4 w-4" />Get my .cashbackid.eth</>}
-                      </Button>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">Leave empty for a unique name</p>
-                  </div>
-                  {claimError && <p className="text-sm text-destructive">{claimError}</p>}
+
+                  {!pendingOnChainLabel ? (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Input
+                            placeholder="your-name (optional)"
+                            value={claimLabel}
+                            onChange={(e) => setClaimLabel(e.target.value)}
+                            className="flex-1 min-w-[140px] h-9 bg-background border-border font-mono text-sm"
+                          />
+                          <Button size="sm" className="h-9 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground whitespace-nowrap" onClick={handleClaimSubdomain} disabled={isClaiming}>
+                            {isClaiming ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando y registrando on-chain...</> : <><Sparkles className="mr-2 h-4 w-4" />Get my .cashbackid.eth</>}
+                          </Button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">Leave empty for a unique name</p>
+                      </div>
+                      {claimError && <p className="text-sm text-destructive">{claimError}</p>}
+                      {claimTxHash && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          Registrado on-chain.{" "}
+                          <a href={`https://etherscan.io/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                            Ver transacción <ArrowUpRight className="h-3 w-3" />
+                          </a>
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-foreground">
+                        <span className="font-mono text-primary">{pendingOnChainLabel}.cashbackid.eth</span> está reservado en la app. No se pudo registrar on-chain.
+                      </p>
+                      {claimOnChainError && <p className="text-sm text-amber-600 dark:text-amber-500">{claimOnChainError}</p>}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10" onClick={handleRetryOnChain} disabled={isRetryingOnChain}>
+                          {isRetryingOnChain ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registrando...</> : <>Reintentar registro on-chain</>}
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={handleContinueWithoutOnChain}>
+                          Continuar sin on-chain
+                        </Button>
+                      </div>
+                      {claimTxHash && (
+                        <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                          <a href={`https://etherscan.io/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                            Ver transacción <ArrowUpRight className="h-3 w-3" />
+                          </a>
+                        </p>
+                      )}
+                    </>
+                  )}
+
                   <p className="text-xs text-muted-foreground border-t border-border pt-3">
                     Already have an ENS? <Link href="/verify" className="text-primary hover:underline">Link existing ENS</Link>
                   </p>

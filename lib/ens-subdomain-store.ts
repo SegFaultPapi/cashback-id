@@ -99,6 +99,18 @@ function loadFromFileSync(): void {
 }
 
 /**
+ * Vuelve a cargar desde data/ens-store.json (útil cuando otro proceso/request acaba de escribir).
+ * Usar en resolve para ver subdominios recién reclamados.
+ */
+export function reloadFromFileSync(): void {
+  loaded = false
+  subdomainsByAddress.clear()
+  claimedLabels.clear()
+  preferencesByEnsName.clear()
+  loadFromFileSync()
+}
+
+/**
  * Guarda el estado actual en data/ens-store.json. Mejor esfuerzo; en Vercel no hay write.
  */
 export function persistToFile(): void {

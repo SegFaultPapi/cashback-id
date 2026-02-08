@@ -232,12 +232,11 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
       try {
         const normalized = ensName.trim().toLowerCase()
         if (normalized.endsWith(".cashbackid.eth")) {
-          const [resolved, avatar] = await Promise.all([
-            fetch(`/api/ens/resolve?name=${encodeURIComponent(normalized)}`).then((r) =>
-              r.ok ? r.json() : null
-            ),
-            resolveEnsAvatar(ensName),
-          ])
+          const resolved = await fetch(`/api/ens/resolve?name=${encodeURIComponent(normalized)}`).then((r) =>
+            r.ok ? r.json() : null
+          )
+          // Skip resolveEnsAvatar for our subdomains (client-side RPC hits CORS; avatar rarely set)
+          const avatar: string | null = null
           const preferences: CashbackPreferences = resolved
             ? {
                 ensName: normalized,
