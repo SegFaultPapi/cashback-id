@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useWallet } from "@/lib/web3-providers"
 import { Button } from "@/components/ui/button"
@@ -25,17 +26,40 @@ export default function LoginPage() {
 
   if (wallet.isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Redirigiendo al dashboard...</p>
+          <div className="relative w-24 h-24">
+            <Image
+              src="/images/Loader.jpg"
+              alt="Loading"
+              fill
+              className="object-contain animate-pulse"
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background relative">
+      {/* Full-screen loader overlay when signing in */}
+      {isConnecting && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background/95 backdrop-blur-sm">
+          <div className="relative w-28 h-28">
+            <Image
+              src="/images/Loader.jpg"
+              alt="Signing in"
+              fill
+              className="object-contain animate-pulse"
+              priority
+            />
+          </div>
+          <p className="text-sm text-muted-foreground">Signing in...</p>
+        </div>
+      )}
+
       {/* Top bar: back to home */}
       <header className="flex items-center justify-between p-4 md:p-6 border-b border-border/50">
         <Link
@@ -43,9 +67,10 @@ export default function LoginPage() {
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Volver al inicio
+          Back to home
         </Link>
-        <Link href="/" className="font-display font-bold text-foreground text-lg">
+        <Link href="/" className="flex items-center gap-2 font-display font-bold text-foreground text-lg">
+          <Image src="/images/logocashback.svg" alt="Cashback ID" width={28} height={28} className="h-7 w-7 object-contain" />
           Cashback ID
         </Link>
         <div className="w-24" /> {/* balance spacer */}
@@ -59,18 +84,18 @@ export default function LoginPage() {
               <Sparkles className="h-7 w-7" />
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-              Bienvenido a Cashback ID
+              Welcome to Cashback ID
             </h1>
             <p className="mt-2 text-muted-foreground text-sm md:text-base">
-              Inicia sesión o crea tu cuenta para empezar a recibir cashback con tu identidad.
+              Sign in or create your account to start receiving cashback with your identity.
             </p>
           </div>
 
           <Card className="border-border bg-card/80 backdrop-blur-sm shadow-xl">
             <CardHeader className="space-y-1 pb-4">
-              <CardTitle className="text-lg font-semibold">Iniciar sesión</CardTitle>
+              <CardTitle className="text-lg font-semibold">Sign in</CardTitle>
               <CardDescription>
-                Elige una opción para continuar. No usamos contraseñas.
+                Choose an option to continue. We don&apos;t use passwords.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -86,7 +111,7 @@ export default function LoginPage() {
                 ) : (
                   <Chrome className="mr-3 h-5 w-5" />
                 )}
-                Continuar con Google
+                Continue with Google
               </Button>
               <Button
                 type="button"
@@ -100,16 +125,16 @@ export default function LoginPage() {
                 ) : (
                   <Apple className="mr-3 h-5 w-5" />
                 )}
-                Continuar con Apple
+                Continue with Apple
               </Button>
             </CardContent>
           </Card>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Al continuar, aceptas nuestros{" "}
-            <Link href="/" className="underline hover:text-foreground">Términos de uso</Link>
-            {" "}y{" "}
-            <Link href="/" className="underline hover:text-foreground">Política de privacidad</Link>.
+            By continuing, you agree to our{" "}
+            <Link href="/" className="underline hover:text-foreground">Terms of use</Link>
+            {" "}and{" "}
+            <Link href="/" className="underline hover:text-foreground">Privacy policy</Link>.
           </p>
         </div>
       </main>

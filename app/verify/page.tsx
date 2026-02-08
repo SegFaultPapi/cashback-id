@@ -142,7 +142,7 @@ export default function VerifyPage() {
       try {
         const ok = await setPreferencesViaApi(prefs)
         if (ok) setCurrentStep("success")
-        else setSaveApiError("No se pudieron guardar las preferencias. Intenta de nuevo.")
+        else setSaveApiError("Could not save preferences. Please try again.")
       } finally {
         setIsSavingViaApi(false)
       }
@@ -403,14 +403,14 @@ export default function VerifyPage() {
 
                 {/* Profile ID (Sui) — necesario para que pagos a tu ENS acrediten cashback */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Perfil de pago (Sui)</label>
+                  <label className="text-sm font-medium text-foreground">Payment profile (Sui)</label>
                   <p className="text-xs text-muted-foreground">
-                    Quien pague a tu ENS usará este ID para acreditar el cashback. Créalo si aún no tienes.
+                    Anyone paying to your ENS will use this ID to credit cashback. Create it if you don&apos;t have one yet.
                   </p>
                   <div className="flex gap-2">
                     <Input
                       readOnly
-                      placeholder="Crear perfil para obtener ID"
+                      placeholder="Create profile to get ID"
                       value={displayProfileId}
                       className="bg-muted/50 border-border text-foreground font-mono text-sm"
                     />
@@ -424,20 +424,20 @@ export default function VerifyPage() {
                       {isCreatingProfile ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creando...
+                          Creating...
                         </>
                       ) : displayProfileId ? (
-                        "Listo"
+                        "Done"
                       ) : (
-                        "Crear perfil"
+                        "Create profile"
                       )}
                     </Button>
                   </div>
                   {profileError === "gas" && (
                     <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-700 dark:text-amber-400">
-                      <p className="font-medium">Necesitas SUI para gas</p>
+                      <p className="font-medium">You need SUI for gas</p>
                       <p className="mt-1 text-muted-foreground">
-                        En testnet obtén SUI gratis en el faucet y vuelve a intentar.
+                        On testnet, get free SUI from the faucet and try again.
                       </p>
                       <a
                         href="https://faucet.sui.io/"
@@ -445,7 +445,7 @@ export default function VerifyPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center mt-2 text-primary hover:underline font-medium"
                       >
-                        Abrir faucet de Sui (testnet) →
+                        Open Sui faucet (testnet) →
                       </a>
                     </div>
                   )}
@@ -490,12 +490,12 @@ export default function VerifyPage() {
                   {isSavingViaApi ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Guardando...
+                      Saving...
                     </>
                   ) : wallet.ensName && isCashbackIdSubdomain(wallet.ensName) ? (
                     <>
                       <ArrowRight className="mr-2 h-4 w-4" />
-                      Guardar preferencias
+                      Save preferences
                     </>
                   ) : (
                     <>
@@ -508,7 +508,7 @@ export default function VerifyPage() {
             </Card>
           )}
 
-          {/* Step 3: Confirm via Safe (solo para ENS que no son subdominio cashbackid) */}
+          {/* Step 3: Confirm via Safe (only for ENS that are not cashbackid subdomain) */}
           {currentStep === "confirm" && (
             <Card className="bg-card border-border">
               <CardHeader>

@@ -197,14 +197,14 @@ export async function registerSubdomainOnChain(
     if (message.includes("0xb455aae8") || message.includes("Unauthorised")) {
       return {
         error:
-          "Name Wrapper: Unauthorised. El dueño del nombre cashbackid.eth (wrapped) debe llamar setApprovalForAll(registrar, true) en el Name Wrapper (0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401). Registrar: " +
+          "Name Wrapper: Unauthorised. The owner of the wrapped name cashbackid.eth must call setApprovalForAll(registrar, true) on the Name Wrapper (0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401). Registrar: " +
           ENS_REGISTRAR_ADDRESS,
       }
     }
     if (message.includes("0xa2a72013") || message.includes("OperationProhibited")) {
       return {
         error:
-          "Name Wrapper: OperationProhibited. El subdominio puede que ya exista on-chain; prueba con otro label (ej. pumatest4).",
+          "Name Wrapper: OperationProhibited. The subdomain may already exist on-chain; try another label (e.g. pumatest4).",
       }
     }
     return { error: message }

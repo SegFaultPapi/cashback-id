@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { WalletButton } from "@/components/wallet-button"
-import { DollarSign, LayoutDashboard, Shield, Trophy } from "lucide-react"
+import { LayoutDashboard, Shield, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -20,9 +21,13 @@ export function Header() {
       <div className="container flex h-14 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-transform group-hover:scale-105">
-              <DollarSign className="h-4.5 w-4.5 text-primary-foreground" />
-            </div>
+            <Image
+              src="/images/logocashback.svg"
+              alt="Cashback ID"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain transition-transform group-hover:scale-105"
+            />
             <span className="font-display text-lg font-bold text-foreground hidden sm:block">
               Cashback ID
             </span>

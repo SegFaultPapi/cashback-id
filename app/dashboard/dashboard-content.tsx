@@ -8,7 +8,7 @@ import { Header } from "@/components/header"
 import { useWallet, SUPPORTED_CHAINS } from "@/lib/web3-providers"
 import { useSui } from "@/lib/sui-client"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import {
   TrendingUp,
@@ -30,6 +30,8 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  RefreshCw,
+  ExternalLink,
 } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -42,6 +44,14 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { resolvePaymentPreferences } from "@/lib/ens-resolver"
+import type { OmnipinSweepResult } from "@/lib/lifi-client"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const MOCK_BALANCES = [
   { chainId: 8453, tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "15000000", amountUSD: 15 },
@@ -71,7 +81,7 @@ const MOCK_ACTIVITY: ActivityTx[] = [
 ]
 
 export default function DashboardContent() {
-  const { wallet, linkEnsName, checkSweep, recordCashback } = useWallet()
+  const { wallet, linkEnsName, checkSweep, getClaimRoute, recordCashback } = useWallet()
   const sui = useSui()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -99,6 +109,8 @@ export default function DashboardContent() {
   const [activitySearch, setActivitySearch] = useState("")
   const [activityTypeFilter, setActivityTypeFilter] = useState("all")
   const [activityStatusFilter, setActivityStatusFilter] = useState("all")
+  const [routeDetailIndex, setRouteDetailIndex] = useState<number | null>(null)
+  const [isRefreshingBalance, setIsRefreshingBalance] = useState(false)
 
   const totalInvested = 2847.5
   const growthPercentage = 8.23
@@ -126,12 +138,31 @@ export default function DashboardContent() {
       body: JSON.stringify({ label }),
     })
     const data = await res.json()
-    return data.txHash ? { txHash: data.txHash } : { error: data.error || "Error al registrar on-chain" }
+    return data.txHash ? { txHash: data.txHash } : { error: data.error || "Error registering on-chain" }
   }
 
 
+  const refreshBalance = useCallback(() => {
+    if (!wallet.isConnected) return
+    setIsRefreshingBalance(true)
+    sui.getCashbackBalance().then((b) => {
+      setCashbackBalance(b)
+      setIsRefreshingBalance(false)
+    }).finally(() => setIsRefreshingBalance(false))
+  }, [wallet.isConnected, sui])
+
   useEffect(() => {
-    if (wallet.isConnected) sui.getCashbackBalance().then(setCashbackBalance)
+    refreshBalance()
+  }, [refreshBalance])
+
+  useEffect(() => {
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible" && wallet.isConnected) {
+        sui.getCashbackBalance().then(setCashbackBalance)
+      }
+    }
+    document?.addEventListener("visibilitychange", onVisibility)
+    return () => document?.removeEventListener("visibilitychange", onVisibility)
   }, [wallet.isConnected, sui])
 
   useEffect(() => {
@@ -180,10 +211,10 @@ export default function DashboardContent() {
         await linkEnsName(data.ensName)
         setClaimLabel("")
         setIsClaiming(false)
-        toast.success("Registrado on-chain", {
-          description: `${data.ensName} está registrado en Ethereum.`,
+        toast.success("Registered on-chain", {
+          description: `${data.ensName} is registered on Ethereum.`,
           action: {
-            label: "Ver transacción",
+            label: "View transaction",
             onClick: () => window.open(`https://etherscan.io/tx/${data.txHash}`, "_blank"),
           },
         })
@@ -192,7 +223,7 @@ export default function DashboardContent() {
 
       if (!data.registeredOnChain) {
         setPendingOnChainLabel(data.label)
-        setClaimOnChainError(data.onChainError || "No se pudo registrar on-chain.")
+        setClaimOnChainError(data.onChainError || "Could not register on-chain.")
         for (let attempt = 0; attempt < 2; attempt++) {
           const retry = await tryRegisterOnChain(data.label)
           if (retry.txHash) {
@@ -202,10 +233,10 @@ export default function DashboardContent() {
             await linkEnsName(data.ensName)
             setClaimLabel("")
             setIsClaiming(false)
-            toast.success("Registrado on-chain", {
-              description: `${data.ensName} está registrado en Ethereum.`,
+            toast.success("Registered on-chain", {
+              description: `${data.ensName} is registered on Ethereum.`,
               action: {
-                label: "Ver transacción",
+                label: "View transaction",
                 onClick: () => window.open(`https://etherscan.io/tx/${retry.txHash}`, "_blank"),
               },
             })
@@ -236,15 +267,15 @@ export default function DashboardContent() {
         setClaimTxHash(retry.txHash)
         setPendingOnChainLabel(null)
         await linkEnsName(`${pendingOnChainLabel}.cashbackid.eth`)
-        toast.success("Registrado on-chain", {
-          description: `${pendingOnChainLabel}.cashbackid.eth está registrado en Ethereum.`,
+        toast.success("Registered on-chain", {
+          description: `${pendingOnChainLabel}.cashbackid.eth is registered on Ethereum.`,
           action: {
-            label: "Ver transacción",
+            label: "View transaction",
             onClick: () => window.open(`https://etherscan.io/tx/${retry.txHash}`, "_blank"),
           },
         })
       } else {
-        setClaimOnChainError(retry.error || "Error al registrar on-chain")
+        setClaimOnChainError(retry.error || "Error registering on-chain")
       }
     } finally {
       setIsRetryingOnChain(false)
@@ -352,7 +383,7 @@ export default function DashboardContent() {
                     <div>
                       <p className="text-sm font-medium text-foreground">Your free Cashback ID</p>
                       <p className="text-xs text-muted-foreground">
-                        Get a name like <span className="font-mono text-primary">you.cashbackid.eth</span> — no payment or signing required. Se registra en la app y on-chain en un solo paso.
+                        Get a name like <span className="font-mono text-primary">you.cashbackid.eth</span> — no payment or signing required. Registered in the app and on-chain in one step.
                       </p>
                     </div>
                   </div>
@@ -368,7 +399,7 @@ export default function DashboardContent() {
                             className="flex-1 min-w-[140px] h-9 bg-background border-border font-mono text-sm"
                           />
                           <Button size="sm" className="h-9 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground whitespace-nowrap" onClick={handleClaimSubdomain} disabled={isClaiming}>
-                            {isClaiming ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creando y registrando on-chain...</> : <><Sparkles className="mr-2 h-4 w-4" />Get my .cashbackid.eth</>}
+                            {isClaiming ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating and registering on-chain...</> : <><Sparkles className="mr-2 h-4 w-4" />Get my .cashbackid.eth</>}
                           </Button>
                         </div>
                         <p className="text-[10px] text-muted-foreground">Leave empty for a unique name</p>
@@ -377,9 +408,9 @@ export default function DashboardContent() {
                       {claimTxHash && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                          Registrado on-chain.{" "}
+                          Registered on-chain.{" "}
                           <a href={`https://etherscan.io/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                            Ver transacción <ArrowUpRight className="h-3 w-3" />
+                            View transaction <ArrowUpRight className="h-3 w-3" />
                           </a>
                         </p>
                       )}
@@ -387,22 +418,22 @@ export default function DashboardContent() {
                   ) : (
                     <>
                       <p className="text-sm text-foreground">
-                        <span className="font-mono text-primary">{pendingOnChainLabel}.cashbackid.eth</span> está reservado en la app. No se pudo registrar on-chain.
+                        <span className="font-mono text-primary">{pendingOnChainLabel}.cashbackid.eth</span> is reserved in the app. Could not register on-chain.
                       </p>
                       {claimOnChainError && <p className="text-sm text-amber-600 dark:text-amber-500">{claimOnChainError}</p>}
                       <div className="flex flex-wrap items-center gap-2">
                         <Button size="sm" variant="outline" className="border-primary/30 text-primary hover:bg-primary/10" onClick={handleRetryOnChain} disabled={isRetryingOnChain}>
-                          {isRetryingOnChain ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registrando...</> : <>Reintentar registro on-chain</>}
+                          {isRetryingOnChain ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Registering...</> : <>Retry on-chain registration</>}
                         </Button>
                         <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={handleContinueWithoutOnChain}>
-                          Continuar sin on-chain
+                          Continue without on-chain
                         </Button>
                       </div>
                       {claimTxHash && (
                         <p className="text-sm text-muted-foreground flex items-center gap-1 flex-wrap">
                           <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                           <a href={`https://etherscan.io/tx/${claimTxHash}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
-                            Ver transacción <ArrowUpRight className="h-3 w-3" />
+                            View transaction <ArrowUpRight className="h-3 w-3" />
                           </a>
                         </p>
                       )}
@@ -460,9 +491,14 @@ export default function DashboardContent() {
                 </div>
                 <div className="relative rounded-xl border border-primary/20 p-3 bg-primary/5">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-primary">Cashback balance (Sui)</p>
-                      {isBalanceVisible ? <p className="font-display text-2xl font-bold text-primary">{cashbackBalance} SUI</p> : <p className="font-display text-2xl font-bold text-primary">••••••</p>}
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-primary">Cashback balance (Sui)</p>
+                        {isBalanceVisible ? <p className="font-display text-2xl font-bold text-primary">{cashbackBalance} SUI</p> : <p className="font-display text-2xl font-bold text-primary">••••••</p>}
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={refreshBalance} disabled={isRefreshingBalance} title="Refresh balance">
+                        <RefreshCw className={cn("h-4 w-4", isRefreshingBalance && "animate-spin")} />
+                      </Button>
                     </div>
                     <div className="text-right">
                       <span className="text-lg font-bold text-primary">+{growthPercentage}%</span>
@@ -552,18 +588,53 @@ export default function DashboardContent() {
               <Card className="bg-card border-border">
                 <CardHeader>
                   <CardTitle className="text-lg font-bold">Omnipin sweep</CardTitle>
-                  <CardDescription>Balances on other chains ready to send to your ENS destination.</CardDescription>
+                  <CardDescription>Balances on other chains ready to send to your ENS destination via LI.FI.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {sweepResults.map((r, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-secondary/50 text-sm">
+                    <div key={i} className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg bg-secondary/50 text-sm flex-wrap">
                       <span className="text-muted-foreground">Chain {r.sourceChain}: ${MOCK_BALANCES[i]?.amountUSD ?? 0}</span>
-                      <span className={r.triggered ? "text-primary font-medium" : "text-muted-foreground"}>{r.triggered ? "Ready to sweep" : r.reason}</span>
+                      <div className="flex items-center gap-2">
+                        <span className={r.triggered ? "text-primary font-medium" : "text-muted-foreground"}>{r.triggered ? "Ready to sweep" : r.reason}</span>
+                        {r.triggered && r.route && (
+                          <Button variant="outline" size="sm" className="border-border h-7 text-xs" onClick={() => setRouteDetailIndex(i)}>
+                            Ver ruta
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </CardContent>
               </Card>
             )}
+
+            <Dialog open={routeDetailIndex !== null} onOpenChange={(open) => !open && setRouteDetailIndex(null)}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+<DialogTitle>LI.FI route</DialogTitle>
+                <DialogDescription>Bridge details to your destination configured in ENS.</DialogDescription>
+                </DialogHeader>
+                {routeDetailIndex !== null && sweepResults[routeDetailIndex]?.route && (() => {
+                  const route = sweepResults[routeDetailIndex]!.route!
+                  return (
+                    <div className="space-y-3 text-sm">
+                      <p className="text-foreground">{route.summary}</p>
+                      <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                        <span>You&apos;ll receive (approx.):</span>
+                        <span className="text-foreground font-medium">{route.estimatedOutput}</span>
+                        <span>Gas (approx.):</span>
+                        <span className="text-foreground">${route.estimatedGasCostUSD}</span>
+                        <span>Time (approx.):</span>
+                        <span className="text-foreground">{Math.ceil(route.estimatedTimeSeconds / 60)} min</span>
+                      </div>
+                      <a href="https://li.fi" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-primary hover:underline">
+                        Open in LI.FI <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  )
+                })()}
+              </DialogContent>
+            </Dialog>
 
             {wallet.ensName && (
               <Card className="bg-card border-border">

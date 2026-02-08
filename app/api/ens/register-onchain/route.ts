@@ -4,13 +4,13 @@ import { registerSubdomainOnChain } from "@/lib/ens-registrar-server"
 
 /**
  * POST /api/ens/register-onchain
- * Registra on-chain un subdominio.
+ * Registers a subdomain on-chain.
  * Body: { label: string [, allowUnclaimed?: boolean] }
- *   - label: ej. "pumatest" para pumatest.cashbackid.eth
- *   - allowUnclaimed: si true, permite registrar aunque no esté en el store (útil para pruebas).
- * Por defecto solo permite labels que ya están en nuestro store (reclamados).
+ *   - label: e.g. "pumatest" for pumatest.cashbackid.eth
+ *   - allowUnclaimed: if true, allows registering even if not in the store (useful for testing).
+ * By default only allows labels that are already in our store (claimed).
  *
- * Requiere PRIVATE_KEY (o ETH_REGISTRAR_OWNER_PRIVATE_KEY) y ETH_RPC_URL en .env.
+ * Requires PRIVATE_KEY (or ETH_REGISTRAR_OWNER_PRIVATE_KEY) and ETH_RPC_URL in .env.
  */
 export async function POST(request: Request) {
   try {

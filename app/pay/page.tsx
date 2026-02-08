@@ -83,7 +83,7 @@ function PayContent() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Error al procesar el pago")
+      if (!res.ok) throw new Error(data.error || "Payment processing failed")
       setPayResult({ digest: data.digest })
     } catch (e) {
       setPayError(e instanceof Error ? e.message : String(e))
@@ -105,24 +105,24 @@ function PayContent() {
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
-            Volver
+            Back
           </Link>
 
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
-                Pagar a ENS
+                Pay to ENS
               </CardTitle>
               <CardDescription>
-                Ingresa un nombre .eth que tenga perfil de cashback. El pago se acreditará como cashback al dueño del ENS.
+                Enter an .eth name that has a cashback profile. The payment will be credited as cashback to the ENS owner.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Destinatario (ENS)</label>
+                <label className="text-sm font-medium text-foreground">Recipient (ENS)</label>
                 <Input
-                  placeholder="nombre.eth"
+                  placeholder="name.eth"
                   value={ensName}
                   onChange={(e) => setEnsName(e.target.value)}
                   className="bg-background border-border font-mono"
@@ -132,7 +132,7 @@ function PayContent() {
               {resolving && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Resolviendo perfil...
+                  Resolving profile...
                 </div>
               )}
 
@@ -141,7 +141,7 @@ function PayContent() {
                   {profileId ? (
                     <>
                       <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm">
-                        <p className="text-muted-foreground">Perfil encontrado</p>
+                        <p className="text-muted-foreground">Profile found</p>
                         <p className="font-mono text-foreground truncate">{profileId}</p>
                         {suiAddress && (
                           <p className="text-xs text-muted-foreground mt-1 truncate">Sui: {suiAddress}</p>
@@ -151,7 +151,7 @@ function PayContent() {
                       {!payResult ? (
                         <>
                           <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">Monto (SUI)</label>
+                            <label className="text-sm font-medium text-foreground">Amount (SUI)</label>
                             <Input
                               type="number"
                               placeholder="0.1"
@@ -171,7 +171,7 @@ function PayContent() {
                             {loading ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Enviando...
+                                Sending...
                               </>
                             ) : (
                               <>
@@ -183,17 +183,17 @@ function PayContent() {
                         </>
                       ) : (
                         <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 text-center">
-                          <p className="text-sm font-medium text-primary">Pago enviado</p>
+                          <p className="text-sm font-medium text-primary">Payment sent</p>
                           <p className="text-xs font-mono text-muted-foreground mt-1 break-all">{payResult.digest}</p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            El cashback se reflejará en la cuenta de {ensName}.
+                            Cashback will be credited to {ensName}&apos;s account.
                           </p>
                         </div>
                       )}
                     </>
                   ) : (
                     <p className="text-sm text-muted-foreground">
-                      Este ENS no tiene perfil de cashback (cashbackid.profile_id). El dueño debe crear perfil y guardarlo en ENS desde Configuración.
+                      This ENS has no cashback profile (cashbackid.profile_id). The owner must create a profile and save it to ENS from Settings.
                     </p>
                   )}
                 </>
