@@ -1,8 +1,15 @@
+/**
+ * Mock data for Cashback ID
+ * Reflects the cross-chain architecture: ENS + LI.FI + Sui
+ */
+
 export const mockUserData = {
   privacyScore: 87,
   availableRewards: "1.234",
   totalCashback: 523.45,
   activeMerchants: 12,
+  chainsActive: 5,
+  bridgesCompleted: 23,
 }
 
 export const mockTransactions = [
@@ -11,40 +18,59 @@ export const mockTransactions = [
     date: "2026-02-02",
     type: "cashback",
     merchant: "Amazon",
-    amount: 125.00,
+    amount: 125.0,
     cashback: 6.25,
     status: "completed",
-    proofHash: "0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890",
+    proofHash:
+      "0x1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890",
+    sourceChain: 8453,
+    destChain: 101,
+    bridgeTool: "LI.FI (Stargate)",
+    proofCid: "bafybeig5abc123def456",
   },
   {
     id: "2",
     date: "2026-02-01",
     type: "cashback",
     merchant: "Starbucks",
-    amount: 15.50,
+    amount: 15.5,
     cashback: 0.47,
     status: "completed",
-    proofHash: "0x2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+    proofHash:
+      "0x2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+    sourceChain: 42161,
+    destChain: 101,
+    bridgeTool: "LI.FI (Hop)",
+    proofCid: "bafybeih7ghi789jkl012",
   },
   {
     id: "3",
     date: "2026-01-30",
     type: "reward",
     merchant: "Nike",
-    amount: 250.00,
-    cashback: 17.50,
+    amount: 250.0,
+    cashback: 17.5,
     status: "completed",
-    proofHash: "0x3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcd",
+    proofHash:
+      "0x3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcd",
+    sourceChain: 1,
+    destChain: 101,
+    bridgeTool: "LI.FI (Across)",
+    proofCid: "bafybeij9mno345pqr678",
   },
   {
     id: "4",
     date: "2026-01-28",
     type: "cashback",
     merchant: "Uber",
-    amount: 45.00,
+    amount: 45.0,
     cashback: 2.25,
     status: "pending",
-    proofHash: "0x4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    proofHash:
+      "0x4d5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    sourceChain: 10,
+    destChain: 101,
+    bridgeTool: "LI.FI (Celer)",
   },
   {
     id: "5",
@@ -52,9 +78,14 @@ export const mockTransactions = [
     type: "cashback",
     merchant: "Spotify",
     amount: 9.99,
-    cashback: 0.50,
+    cashback: 0.5,
     status: "completed",
-    proofHash: "0x5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+    proofHash:
+      "0x5e6f7890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+    sourceChain: 137,
+    destChain: 101,
+    bridgeTool: "LI.FI (Connext)",
+    proofCid: "bafybeil3stu901vwx234",
   },
 ]
 
@@ -67,6 +98,7 @@ export const mockMerchants = [
     category: "Shopping",
     description: "Online retail & cloud services",
     isActive: true,
+    supportedChains: [1, 8453, 42161],
   },
   {
     id: "starbucks",
@@ -76,6 +108,7 @@ export const mockMerchants = [
     category: "Food & Drink",
     description: "Coffee & beverages",
     isActive: false,
+    supportedChains: [8453, 42161],
   },
   {
     id: "nike",
@@ -85,6 +118,7 @@ export const mockMerchants = [
     category: "Fashion",
     description: "Athletic apparel & footwear",
     isActive: true,
+    supportedChains: [1, 10, 137],
   },
   {
     id: "uber",
@@ -94,6 +128,7 @@ export const mockMerchants = [
     category: "Transport",
     description: "Ride-sharing & delivery",
     isActive: false,
+    supportedChains: [10, 8453],
   },
   {
     id: "spotify",
@@ -103,6 +138,7 @@ export const mockMerchants = [
     category: "Entertainment",
     description: "Music streaming service",
     isActive: true,
+    supportedChains: [137, 42161],
   },
   {
     id: "apple",
@@ -112,6 +148,7 @@ export const mockMerchants = [
     category: "Tech",
     description: "Electronics & software",
     isActive: false,
+    supportedChains: [1, 8453],
   },
   {
     id: "netflix",
@@ -121,6 +158,7 @@ export const mockMerchants = [
     category: "Entertainment",
     description: "Video streaming service",
     isActive: false,
+    supportedChains: [8453],
   },
   {
     id: "target",
@@ -130,48 +168,115 @@ export const mockMerchants = [
     category: "Shopping",
     description: "Department store retail",
     isActive: true,
+    supportedChains: [8453, 42161],
   },
 ]
 
 export const mockLeaderboard = [
-  { rank: 1, address: "0x742d...5f8C", rewards: 45.67, privacyScore: 98 },
-  { rank: 2, address: "0x8ba1...0C87", rewards: 38.21, privacyScore: 95 },
-  { rank: 3, address: "0x1234...5678", rewards: 32.45, privacyScore: 92 },
-  { rank: 4, address: "0xabcd...ef01", rewards: 28.90, privacyScore: 91 },
-  { rank: 5, address: "0x5678...9abc", rewards: 24.15, privacyScore: 89 },
-  { rank: 6, address: "0x9def...2345", rewards: 21.33, privacyScore: 88 },
-  { rank: 7, address: "0x3456...7890", rewards: 18.77, privacyScore: 87 },
-  { rank: 8, address: "0x7890...abcd", rewards: 15.22, privacyScore: 85 },
-  { rank: 9, address: "0xdef0...1234", rewards: 12.88, privacyScore: 84 },
-  { rank: 10, address: "0x0123...4567", rewards: 10.05, privacyScore: 82 },
+  {
+    rank: 1,
+    address: "0x742d...5f8C",
+    ensName: "alice.eth",
+    rewards: 45.67,
+    privacyScore: 98,
+    chainsUsed: 5,
+  },
+  {
+    rank: 2,
+    address: "0x8ba1...0C87",
+    ensName: "bob.eth",
+    rewards: 38.21,
+    privacyScore: 95,
+    chainsUsed: 4,
+  },
+  {
+    rank: 3,
+    address: "0x1234...5678",
+    ensName: "charlie.eth",
+    rewards: 32.45,
+    privacyScore: 92,
+    chainsUsed: 3,
+  },
+  {
+    rank: 4,
+    address: "0xabcd...ef01",
+    ensName: "diana.eth",
+    rewards: 28.9,
+    privacyScore: 91,
+    chainsUsed: 4,
+  },
+  {
+    rank: 5,
+    address: "0x5678...9abc",
+    ensName: "eve.eth",
+    rewards: 24.15,
+    privacyScore: 89,
+    chainsUsed: 3,
+  },
+  {
+    rank: 6,
+    address: "0x9def...2345",
+    rewards: 21.33,
+    privacyScore: 88,
+    chainsUsed: 2,
+  },
+  {
+    rank: 7,
+    address: "0x3456...7890",
+    rewards: 18.77,
+    privacyScore: 87,
+    chainsUsed: 2,
+  },
+  {
+    rank: 8,
+    address: "0x7890...abcd",
+    rewards: 15.22,
+    privacyScore: 85,
+    chainsUsed: 3,
+  },
+  {
+    rank: 9,
+    address: "0xdef0...1234",
+    rewards: 12.88,
+    privacyScore: 84,
+    chainsUsed: 1,
+  },
+  {
+    rank: 10,
+    address: "0x0123...4567",
+    rewards: 10.05,
+    privacyScore: 82,
+    chainsUsed: 2,
+  },
 ]
 
 export const mockCashbackHistory = [
-  { month: "Ago", amount: 45 },
-  { month: "Sep", amount: 78 },
-  { month: "Oct", amount: 92 },
-  { month: "Nov", amount: 125 },
-  { month: "Dic", amount: 98 },
-  { month: "Ene", amount: 85 },
+  { month: "Aug", amount: 45, bridges: 3 },
+  { month: "Sep", amount: 78, bridges: 5 },
+  { month: "Oct", amount: 92, bridges: 7 },
+  { month: "Nov", amount: 125, bridges: 9 },
+  { month: "Dec", amount: 98, bridges: 6 },
+  { month: "Jan", amount: 85, bridges: 8 },
 ]
 
 export const verificationProviders = [
   {
     id: "civic",
     name: "Civic",
-    description: "Verificacion de ID gubernamental con pruebas zero-knowledge",
+    description:
+      "Government ID verification with zero-knowledge proofs",
     badge: "ZK-Proof",
   },
   {
     id: "polygon-id",
     name: "Polygon ID",
-    description: "Identidad soberana en la red de Polygon",
+    description: "Self-sovereign identity on Polygon network",
     badge: "ZK-Proof",
   },
   {
     id: "worldid",
     name: "World ID",
-    description: "Prueba de humanidad preservando privacidad",
+    description: "Privacy-preserving proof of humanity",
     badge: "ZK-Proof",
   },
 ]
@@ -180,4 +285,6 @@ export const stats = {
   totalRewardsDistributed: "2,847,293",
   activeUsers: "127,453",
   avgPrivacyScore: 89,
+  totalBridges: "456,789",
+  chainsSupported: 6,
 }
