@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getStoredPreferences, isOurSubdomain } from "@/lib/ens-subdomain-store"
+import { getStoredPreferences, isOurSubdomain, reloadFromFileSync } from "@/lib/ens-subdomain-store"
 
 /**
  * GET /api/ens/resolve?name=alice.cashbackid.eth
@@ -22,18 +22,12 @@ export async function GET(request: Request) {
       )
     }
 
+    reloadFromFileSync()
     if (!isOurSubdomain(normalized)) {
       return NextResponse.json({ error: "Subdomain not found" }, { status: 404 })
     }
 
-    const prefs = getStoredPreferences(normalized)
-    if (!prefs) {
-      return NextResponse.json(
-        { error: "No preferences set for this subdomain" },
-        { status: 404 }
-      )
-    }
-
+    const prefs = getStoredPreferences(normalized) ?? {}
     return NextResponse.json({
       ensName: normalized,
       chainId: prefs.chainId ?? null,

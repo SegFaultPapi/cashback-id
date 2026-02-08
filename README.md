@@ -133,10 +133,10 @@ This project is private and proprietary.
 
 ## 🔗 Links
 
-- [Sui Documentation](https://docs.sui.io/)
-- [ENS Documentation](https://docs.ens.domains/)
-- [LI.FI Documentation](https://docs.li.fi/)
-- [Next.js Documentation](https://nextjs.org/docs)
+- [docs/HACKATHON_DEMO_SUI_LIFI.md](docs/HACKATHON_DEMO_SUI_LIFI.md) — **How to test and demonstrate Sui + LI.FI for the hackathon** (judges, checklist, flows).
+- [docs/MVP_CHECKLIST.md](docs/MVP_CHECKLIST.md) — MVP status and requirements for end-to-end flow.
+- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Implementation plan and Sui contract usage (Hackmoney).
+- [docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md](docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md) — ENS records and `.cashbackid.eth` subdomains.
 
 ---
 

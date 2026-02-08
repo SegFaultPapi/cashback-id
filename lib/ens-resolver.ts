@@ -201,6 +201,10 @@ const ENS_PUBLIC_RESOLVER = "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63" as Addr
 /** Parent ENS name for Cashback ID subdomains (e.g. alice.cashbackid.eth). Must be owned and wrapped to create subdomains. */
 export const CASHBACKID_ENS_PARENT = "cashbackid.eth"
 
+/** CashbackIdRegistrar contract on mainnet. Set NEXT_PUBLIC_ENS_REGISTRAR_ADDRESS in .env to override. */
+export const ENS_REGISTRAR_ADDRESS = (process.env.NEXT_PUBLIC_ENS_REGISTRAR_ADDRESS ||
+  "0x590992a59EB5b989030A75AB8f32d2DFF0c70073") as Address
+
 /**
  * Builds the calldata for a multicall that sets all cashbackid.* text records
  * on the user's ENS name in a single transaction.

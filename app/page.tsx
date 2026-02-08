@@ -12,9 +12,9 @@ import { CashbackCard } from "@/components/ui/cashback-card"
 import { DotWorldMap } from "@/components/ui/dot-world-map"
 import { LandingNavbar } from "@/components/landing-navbar"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 import {
   TrendingUp,
-  DollarSign,
   ArrowUpRight,
   Sparkles,
   Apple,
@@ -36,7 +36,7 @@ import {
 import { useEffect, useState } from "react"
 
 export default function LandingPage() {
-  const { wallet, connect, isConnecting } = useWallet()
+  const { wallet } = useWallet()
   const router = useRouter()
   const [heroOpacity, setHeroOpacity] = useState(1)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -92,9 +92,13 @@ export default function LandingPage() {
               <div className="flex items-center justify-between">
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
-                    <DollarSign className="h-6 w-6 text-primary-foreground" />
-                  </div>
+                  <Image
+                    src="/images/logocashback.svg"
+                    alt="Cashback ID"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 object-contain"
+                  />
                   <span className="font-display text-xl font-bold text-foreground">
                     Cashback ID
                   </span>
@@ -102,11 +106,10 @@ export default function LandingPage() {
 
                 {/* Desktop CTA */}
                 <Button
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="hidden sm:flex px-6 py-2 rounded-full bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
                 >
-                  Get Started
+                  Sign in
                 </Button>
 
                 {/* Mobile menu toggle */}
@@ -132,11 +135,10 @@ export default function LandingPage() {
                   </a>
                   <div className="pt-2 border-t border-border/50">
                     <Button
-                      onClick={() => { connect("google"); setMobileMenuOpen(false) }}
-                      disabled={isConnecting}
+                      onClick={() => { router.push("/login"); setMobileMenuOpen(false) }}
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm rounded-lg"
                     >
-                      Sign In with Google
+                      Sign in
                     </Button>
                   </div>
                 </div>
@@ -160,8 +162,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
                 <Button
                   size="lg"
-                  onClick={() => connect("apple")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
                 >
                   <Apple className="mr-2 h-5 w-5" />
@@ -170,8 +171,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="w-full sm:w-auto border-border hover:bg-card h-14 px-10 bg-transparent text-base"
                 >
                   <Chrome className="mr-2 h-5 w-5" />
@@ -180,7 +180,7 @@ export default function LandingPage() {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                One-tap signup. No complicated setup, no passwords to remember.
+                You&apos;ll be taken to the sign-in screen. No passwords required.
               </p>
             </div>
           </div>
@@ -343,26 +343,19 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Stats Section */}
+        {/* Hero Video Section */}
         <section className="py-20 w-full border-y border-border/50">
-          <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center">
-              <div>
-                <p className="font-display text-4xl md:text-5xl font-bold text-primary">$2.8M+</p>
-                <p className="text-sm text-muted-foreground mt-2">Cashback Distributed</p>
-              </div>
-              <div>
-                <p className="font-display text-4xl md:text-5xl font-bold text-foreground">127K+</p>
-                <p className="text-sm text-muted-foreground mt-2">Active Users</p>
-              </div>
-              <div>
-                <p className="font-display text-4xl md:text-5xl font-bold text-foreground">6</p>
-                <p className="text-sm text-muted-foreground mt-2">Chains Supported</p>
-              </div>
-              <div>
-                <p className="font-display text-4xl md:text-5xl font-bold text-primary">&lt;2s</p>
-                <p className="text-sm text-muted-foreground mt-2">Sui Settlement</p>
-              </div>
+          <div className="w-full max-w-5xl mx-auto px-4 md:px-6">
+            <div className="rounded-2xl md:rounded-3xl overflow-hidden border border-border/50 bg-card/30 shadow-2xl">
+              <video
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="w-full h-auto aspect-video object-cover"
+              >
+                <source src="/images/HeroVideo.mp4" type="video/mp4" />
+              </video>
             </div>
           </div>
         </section>
@@ -541,12 +534,11 @@ export default function LandingPage() {
             <div className="text-center pt-16">
               <Button
                 size="lg"
-                onClick={() => connect("google")}
-                disabled={isConnecting}
+                onClick={() => router.push("/login")}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
               >
                 <Sparkles className="mr-2 h-5 w-5" />
-                Start Earning
+                Empezar a ganar
               </Button>
             </div>
           </div>
@@ -785,12 +777,11 @@ export default function LandingPage() {
                 </p>
                 <Button
                   size="lg"
-                  onClick={() => connect("google")}
-                  disabled={isConnecting}
+                  onClick={() => router.push("/login")}
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-14 px-10 text-base"
                 >
                   <ArrowUpRight className="mr-2 h-5 w-5" />
-                  Get Started
+                  Sign in
                 </Button>
               </CardContent>
             </Card>
