@@ -16,7 +16,10 @@ export async function POST(req: Request) {
     const packageId = bodyPackageId || getCashbackPackageId()
     const privateKey = process.env.SUI_PRIVATE_KEY
     if (!privateKey) {
-      return NextResponse.json({ error: "SUI_PRIVATE_KEY is not set" }, { status: 500 })
+      return NextResponse.json(
+        { error: "Server not configured: SUI_PRIVATE_KEY is missing" },
+        { status: 500 }
+      )
     }
 
     const client = getServerSuiClient()
@@ -56,6 +59,15 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     console.error("[create-profile]", message)
-    return NextResponse.json({ error: message }, { status: 500 })
+    const isGas =
+      /insufficient|gas|No valid gas coins|balance/i.test(message) || message.includes("0x1::coin::InsufficientBalance")
+    return NextResponse.json(
+      {
+        error: isGas
+          ? "Server wallet has insufficient SUI. Fund the SUI_PRIVATE_KEY address on testnet (faucet)."
+          : message,
+      },
+      { status: 500 }
+    )
   }
 }

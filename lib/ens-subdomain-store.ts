@@ -1,9 +1,13 @@
 /**
- * Store para subdominios *.cashbackid.eth asignados por usuario (Sui address).
- * En producción reemplazar por DB (Postgres, Vercel KV, etc.).
+ * Store para subdominios *.cashbackid.eth y preferencias.
+ * Persiste en data/ens-store.json cuando hay fs disponible (dev/local);
+ * en Vercel/serverless usar DB (Postgres, KV). Datos en memoria como fallback.
  */
 
 const CASHBACKID_PARENT = "cashbackid.eth"
+
+const DATA_DIR = "data"
+const STORE_FILE = "ens-store.json"
 
 export interface SubdomainEntry {
   ensName: string
@@ -13,9 +17,21 @@ export interface SubdomainEntry {
 
 /** suiAddress (lowercase) -> SubdomainEntry */
 const subdomainsByAddress = new Map<string, SubdomainEntry>()
-
 /** label (lowercase) -> true si ya está tomado */
 const claimedLabels = new Map<string, boolean>()
+
+export type StoredPreferences = Partial<{
+  chainId: number
+  asset: string
+  pool: string
+  suiAddress: string
+  threshold: number
+  profileId: string
+}>
+/** ensName (normalized lower) -> preferences */
+const preferencesByEnsName = new Map<string, StoredPreferences>()
+
+let loaded = false
 
 function normalizeAddress(addr: string): string {
   return (addr || "").toLowerCase().trim()
@@ -25,9 +41,10 @@ function normalizeLabel(label: string): string {
   return label.toLowerCase().trim().replace(/[^a-z0-9-_]/g, "")
 }
 
-/**
- * Genera un label único a partir de la dirección Sui (primeros 8 chars del hash).
- */
+function normalizeEnsName(name: string): string {
+  return (name || "").toLowerCase().trim()
+}
+
 function suggestLabelFromAddress(suiAddress: string): string {
   const hex = suiAddress.replace(/^0x/, "")
   let hash = 0
@@ -46,21 +63,78 @@ function suggestLabelFromAddress(suiAddress: string): string {
 }
 
 /**
- * Obtiene el subdominio asignado a una dirección Sui.
+ * Carga subdominios y preferencias desde data/ens-store.json (si existe).
+ * Solo se ejecuta una vez por proceso. En serverless puede no existir el archivo.
  */
+function loadFromFileSync(): void {
+  if (loaded) return
+  loaded = true
+  try {
+    const fs = require("fs") as typeof import("fs")
+    const path = require("path") as typeof import("path")
+    const cwd = process.cwd()
+    const filePath = path.join(cwd, DATA_DIR, STORE_FILE)
+    if (!fs.existsSync(filePath)) return
+    const raw = fs.readFileSync(filePath, "utf-8")
+    const data = JSON.parse(raw) as {
+      subdomains?: Array<{ address: string; entry: SubdomainEntry }>
+      preferences?: Array<{ ensName: string; prefs: StoredPreferences }>
+    }
+    if (data.subdomains) {
+      for (const { address, entry } of data.subdomains) {
+        const addr = normalizeAddress(address)
+        subdomainsByAddress.set(addr, entry)
+        claimedLabels.set(entry.label.toLowerCase(), true)
+      }
+    }
+    if (data.preferences) {
+      for (const { ensName, prefs } of data.preferences) {
+        const key = normalizeEnsName(ensName)
+        if (key.endsWith(".cashbackid.eth")) preferencesByEnsName.set(key, prefs)
+      }
+    }
+  } catch {
+    // ignore: no file, no fs, or invalid JSON
+  }
+}
+
+/**
+ * Guarda el estado actual en data/ens-store.json. Mejor esfuerzo; en Vercel no hay write.
+ */
+export function persistToFile(): void {
+  loadFromFileSync()
+  try {
+    const fs = require("fs") as typeof import("fs")
+    const path = require("path") as typeof import("path")
+    const cwd = process.cwd()
+    const dir = path.join(cwd, DATA_DIR)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    const filePath = path.join(dir, STORE_FILE)
+    const subdomains = Array.from(subdomainsByAddress.entries()).map(([address, entry]) => ({
+      address,
+      entry,
+    }))
+    const preferences = Array.from(preferencesByEnsName.entries()).map(([ensName, prefs]) => ({
+      ensName,
+      prefs,
+    }))
+    fs.writeFileSync(filePath, JSON.stringify({ subdomains, preferences }, null, 2), "utf-8")
+  } catch {
+    // ignore: read-only fs (e.g. Vercel)
+  }
+}
+
 export function getSubdomain(suiAddress: string): SubdomainEntry | null {
+  loadFromFileSync()
   const addr = normalizeAddress(suiAddress)
   return subdomainsByAddress.get(addr) ?? null
 }
 
-/**
- * Asigna un subdominio a la dirección. Si preferredLabel viene, se usa si está libre;
- * si no, se genera uno. Devuelve el entry o null si el label está tomado.
- */
 export function claimSubdomain(
   suiAddress: string,
   preferredLabel?: string
 ): SubdomainEntry | null {
+  loadFromFileSync()
   const addr = normalizeAddress(suiAddress)
   const existing = subdomainsByAddress.get(addr)
   if (existing) return existing
@@ -80,53 +154,33 @@ export function claimSubdomain(
   }
   subdomainsByAddress.set(addr, entry)
   claimedLabels.set(label, true)
+  persistToFile()
   return entry
 }
 
-/**
- * Comprueba si un label está disponible.
- */
 export function isLabelAvailable(label: string): boolean {
+  loadFromFileSync()
   return !claimedLabels.has(normalizeLabel(label))
 }
 
-// ---------------------------------------------------------------------------
-// Preferencias guardadas para subdominios (hasta que se escriban on-chain)
-// ---------------------------------------------------------------------------
-
-export type StoredPreferences = Partial<{
-  chainId: number
-  asset: string
-  pool: string
-  suiAddress: string
-  threshold: number
-  profileId: string
-}>
-
-/** ensName (normalized lower) -> preferences */
-const preferencesByEnsName = new Map<string, StoredPreferences>()
-
-function normalizeEnsName(name: string): string {
-  return (name || "").toLowerCase().trim()
-}
-
 export function setStoredPreferences(ensName: string, prefs: StoredPreferences): void {
+  loadFromFileSync()
   const key = normalizeEnsName(ensName)
   if (!key.endsWith(".cashbackid.eth")) return
   const existing = preferencesByEnsName.get(key) || {}
   preferencesByEnsName.set(key, { ...existing, ...prefs })
+  persistToFile()
 }
 
 export function getStoredPreferences(ensName: string): StoredPreferences | null {
+  loadFromFileSync()
   const key = normalizeEnsName(ensName)
   const prefs = preferencesByEnsName.get(key)
   return prefs && Object.keys(prefs).length > 0 ? prefs : null
 }
 
-/**
- * Comprueba si el nombre es un subdominio nuestro y tenemos entrada en el store.
- */
 export function isOurSubdomain(ensName: string): boolean {
+  loadFromFileSync()
   const key = normalizeEnsName(ensName)
   if (!key.endsWith(".cashbackid.eth")) return false
   const label = key.slice(0, -".cashbackid.eth".length)

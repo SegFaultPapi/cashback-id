@@ -4,24 +4,22 @@ import {
   setStoredPreferences,
   type StoredPreferences,
 } from "@/lib/ens-subdomain-store"
+import { validateSuiAddress } from "@/lib/api-validate"
 
 /**
  * POST /api/ens/set-preferences
  * Guarda preferencias para el subdominio cashbackid.eth del usuario.
- * El usuario no firma nada: el backend guarda (y en el futuro escribirá on-chain).
  * Body: { suiAddress: string, preferences: { chainId?, asset?, profileId?, ... } }
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const suiAddress = typeof body.suiAddress === "string" ? body.suiAddress.trim() : null
+    const body = await request.json().catch(() => ({}))
+    const suiAddress = typeof body.suiAddress === "string" ? body.suiAddress.trim() : ""
     const preferences = body.preferences && typeof body.preferences === "object" ? body.preferences : {}
 
-    if (!suiAddress || suiAddress.length < 10) {
-      return NextResponse.json(
-        { error: "suiAddress is required" },
-        { status: 400 }
-      )
+    const addrCheck = validateSuiAddress(suiAddress)
+    if (!addrCheck.ok) {
+      return NextResponse.json({ error: addrCheck.error }, { status: 400 })
     }
 
     const entry = getSubdomain(suiAddress)
