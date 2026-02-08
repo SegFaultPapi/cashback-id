@@ -16,8 +16,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# env files (secrets, keys, API tokens — never commit)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+# keep .env.example committed (template without real values)
+!.env.example
 
 # vercel
 .vercel
@@ -25,3 +32,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE / editor
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# secrets / keys (if ever dropped in repo)
+*.pem
+*.key
+*.p8
+
+# local data (e.g. persisted subdomain store; may contain addresses)
+/data/
+*.local.json
+
+# turbo
+.turbo

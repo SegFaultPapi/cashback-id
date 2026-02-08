@@ -42,7 +42,6 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import Footer from "@/components/footer" // Declare the Footer variable
 
 type Transaction = (typeof mockTransactions)[0]
 
@@ -405,7 +404,6 @@ export default function TransactionsPage() {
           )}
         </SheetContent>
       </Sheet>
-      <Footer />
     </div>
   )
 }

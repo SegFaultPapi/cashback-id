@@ -9,7 +9,6 @@ import { useWallet, SUPPORTED_CHAINS } from "@/lib/web3-providers"
 import { mockLeaderboard, stats } from "@/lib/mock-data"
 import { Trophy, Medal, Award, Crown, Shield, Users, TrendingUp, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Footer } from "@/components/footer"
 
 export default function LeaderboardPage() {
   const { wallet } = useWallet()
@@ -157,8 +156,6 @@ export default function LeaderboardPage() {
           ))}
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

@@ -33,6 +33,9 @@ import {
   buildSetPreferencesTx,
   isValidEnsName,
   formatPreferencesSummary,
+  CASHBACKID_ENS_PARENT,
+  isCashbackIdSubdomain,
+  getCashbackIdSubdomainLabel,
   type CashbackPreferences,
   SUPPORTED_CHAINS,
   SUPPORTED_ASSETS,
@@ -89,6 +92,10 @@ export interface WalletContextType {
   updatePreferences: (
     prefs: Partial<Omit<CashbackPreferences, "ensName">>
   ) => { to: string; data: string } | null
+  /** Save preferences via backend (for *.cashbackid.eth; no signing) */
+  setPreferencesViaApi: (
+    prefs: Partial<Omit<CashbackPreferences, "ensName">>
+  ) => Promise<boolean>
   /** Get a cross-chain route for cashback claim */
   getClaimRoute: (
     sourceChainId: number,
@@ -112,6 +119,10 @@ export interface WalletContextType {
       amountUSD: number
     }>
   ) => Promise<OmnipinSweepResult[]>
+  /** Create CashbackProfile on Sui (user signs); returns profileId */
+  createProfile: () => Promise<string>
+  /** Get current user's Sui CashbackProfile object ID */
+  getProfileId: () => Promise<string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +230,44 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
       console.log("[ENS] Linking:", ensName)
 
       try {
+        const normalized = ensName.trim().toLowerCase()
+        if (normalized.endsWith(".cashbackid.eth")) {
+          const [resolved, avatar] = await Promise.all([
+            fetch(`/api/ens/resolve?name=${encodeURIComponent(normalized)}`).then((r) =>
+              r.ok ? r.json() : null
+            ),
+            resolveEnsAvatar(ensName),
+          ])
+          const preferences: CashbackPreferences = resolved
+            ? {
+                ensName: normalized,
+                chainId: resolved.chainId ?? null,
+                asset: resolved.asset ?? null,
+                pool: resolved.pool ?? null,
+                suiAddress: resolved.suiAddress ?? null,
+                threshold: resolved.threshold ?? null,
+                profileId: resolved.profileId ?? null,
+              }
+            : {
+                ensName: normalized,
+                chainId: null,
+                asset: null,
+                pool: null,
+                suiAddress: null,
+                threshold: null,
+                profileId: null,
+              }
+          setWallet((prev) => ({
+            ...prev,
+            ensName: normalized,
+            ensAvatar: avatar,
+            preferences,
+          }))
+          localStorage.setItem("cashbackid_ens_name", normalized)
+          console.log("[ENS] Subdomain linked:", normalized, preferences)
+          return
+        }
+
         const [preferences, avatar] = await Promise.all([
           resolvePaymentPreferences(ensName),
           resolveEnsAvatar(ensName),
@@ -262,6 +311,40 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
       return { to: txData.to, data: txData.data }
     },
     [wallet.ensName]
+  )
+
+  const setPreferencesViaApi = useCallback(
+    async (prefs: Partial<Omit<CashbackPreferences, "ensName">>) => {
+      if (!wallet.address || !wallet.ensName) return false
+      try {
+        const res = await fetch("/api/ens/set-preferences", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suiAddress: wallet.address, preferences: prefs }),
+        })
+        if (!res.ok) return false
+        setWallet((prev) => ({
+          ...prev,
+          preferences: {
+            ...(prev.preferences || {
+              ensName: prev.ensName!,
+              chainId: null,
+              asset: null,
+              pool: null,
+              suiAddress: null,
+              threshold: null,
+              profileId: null,
+            }),
+            ...prefs,
+            ensName: prev.ensName!,
+          },
+        }))
+        return true
+      } catch {
+        return false
+      }
+    },
+    [wallet.address, wallet.ensName]
   )
 
   // ------ LI.FI Cross-Chain Route ------
@@ -333,6 +416,9 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
     [wallet.address, wallet.preferences]
   )
 
+  const createProfile = useCallback(() => sui.createProfile(), [sui])
+  const getProfileId = useCallback(() => sui.getProfileId(), [sui])
+
   return (
     <WalletContext.Provider
       value={{
@@ -342,9 +428,12 @@ function WalletOrchestrator({ children }: { children: ReactNode }) {
         isConnecting,
         linkEnsName,
         updatePreferences,
+        setPreferencesViaApi,
         getClaimRoute,
         recordCashback,
         checkSweep,
+        createProfile,
+        getProfileId,
       }}
     >
       {children}
@@ -369,7 +458,13 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 // ---------------------------------------------------------------------------
 
 export { formatSuiAddress as formatAddress }
-export { SUPPORTED_CHAINS, SUPPORTED_ASSETS }
+export {
+  SUPPORTED_CHAINS,
+  SUPPORTED_ASSETS,
+  CASHBACKID_ENS_PARENT,
+  isCashbackIdSubdomain,
+  getCashbackIdSubdomainLabel,
+}
 
 // Legacy function stubs (kept for pages that import them directly)
 export async function claimRewards(amount: bigint): Promise<void> {

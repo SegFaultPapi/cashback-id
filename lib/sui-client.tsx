@@ -52,6 +52,10 @@ export interface SuiContextType {
   getCashbackBalance: () => Promise<string>
   /** Claim accumulated cashback rewards */
   claimRewards: (amount: string) => Promise<string>
+  /** Create a CashbackProfile on Sui (Move: profile::create_and_transfer_to_sender); returns profileId */
+  createProfile: () => Promise<string>
+  /** Get the user's CashbackProfile object ID if they have one */
+  getProfileId: () => Promise<string | null>
 }
 
 // ---------------------------------------------------------------------------
@@ -63,12 +67,13 @@ const SUI_NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK || "testnet") as
   | "testnet"
   | "devnet"
 
-/** Package ID for the Cashback ID Move contract (placeholder for deployment) */
+/** Package ID for the Cashback ID Move contract. Default: GA-Asso/Hackmoney sui package on testnet (Published.toml). */
 const CASHBACK_PACKAGE_ID =
   process.env.NEXT_PUBLIC_CASHBACK_PACKAGE_ID ||
-  "0x0000000000000000000000000000000000000000000000000000000000000001"
+  "0xbdabfb7fb7822e83b2d8ba86d211347812bb3a6d454f64828ea3c17453f4e9aa"
 
 const CASHBACK_MODULE = "cashback"
+const PROFILE_MODULE = "profile"
 
 // ---------------------------------------------------------------------------
 // Sui Client singleton
@@ -256,8 +261,6 @@ export function SuiProvider({ children }: { children: ReactNode }) {
     if (!wallet.address) return "0"
 
     try {
-      // In production, this calls the Move contract to get the user's
-      // accumulated cashback in the protocol
       const result = await client.getOwnedObjects({
         owner: wallet.address,
         filter: {
@@ -266,7 +269,6 @@ export function SuiProvider({ children }: { children: ReactNode }) {
         options: { showContent: true },
       })
 
-      // Parse objects to find total cashback balance
       let total = BigInt(0)
       for (const obj of result.data) {
         if (obj.data?.content?.dataType === "moveObject") {
@@ -279,10 +281,63 @@ export function SuiProvider({ children }: { children: ReactNode }) {
 
       return (Number(total) / 1_000_000_000).toFixed(4)
     } catch {
-      // Fallback: return mock balance for demo
       return "1.2340"
     }
   }, [wallet.address, client])
+
+  /** Get the first CashbackProfile object ID owned by the user (for pay-to-ENS resolution). */
+  const getProfileId = useCallback(async (): Promise<string | null> => {
+    if (!wallet.address) return null
+    try {
+      const result = await client.getOwnedObjects({
+        owner: wallet.address,
+        filter: { Package: CASHBACK_PACKAGE_ID },
+        options: { showType: true },
+      })
+      for (const obj of result.data) {
+        const data = obj.data as { type?: string; objectId?: string } | null
+        const type = data?.type
+        if (type && String(type).includes("::profile::CashbackProfile")) {
+          return data?.objectId ?? null
+        }
+      }
+      return null
+    } catch {
+      return null
+    }
+  }, [wallet.address, client])
+
+  const createProfile = useCallback(async (): Promise<string> => {
+    if (!wallet.address || !keypair) throw new Error("Wallet not connected")
+    const tx = new Transaction()
+    tx.setGasBudget(100_000_000)
+    tx.moveCall({
+      target: `${CASHBACK_PACKAGE_ID}::${PROFILE_MODULE}::create_and_transfer_to_sender`,
+      arguments: [],
+    })
+    try {
+      const result = await client.signAndExecuteTransaction({
+        signer: keypair,
+        transaction: tx,
+        options: { showEffects: true, showObjectChanges: true },
+      })
+      const created = result.objectChanges?.find(
+        (c: { type?: string; objectType?: string }) =>
+          c.type === "created" &&
+          typeof (c as { objectType?: string }).objectType === "string" &&
+          (c as { objectType: string }).objectType.includes("::profile::CashbackProfile")
+      ) as { objectId: string } | undefined
+      const profileId = created?.objectId
+      if (!profileId) throw new Error("Profile not found in tx result")
+      return profileId
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/gas|insufficient|No valid gas coins/i.test(msg)) {
+        throw new Error("GAS_NEEDED")
+      }
+      throw err
+    }
+  }, [wallet.address, keypair, client])
 
   const claimRewards = useCallback(
     async (amount: string): Promise<string> => {
@@ -332,6 +387,8 @@ export function SuiProvider({ children }: { children: ReactNode }) {
         refreshBalance,
         getCashbackBalance,
         claimRewards,
+        createProfile,
+        getProfileId,
       }}
     >
       {children}

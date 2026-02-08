@@ -39,6 +39,8 @@ export interface CashbackPreferences {
   suiAddress: string | null
   /** Minimum threshold (in USD) before sweeping cross-chain */
   threshold: number | null
+  /** Sui CashbackProfile object ID — para que quien pague a este ENS sepa a qué perfil acreditar */
+  profileId: string | null
   /** Raw ENS name */
   ensName: string
 }
@@ -50,6 +52,7 @@ export const ENS_RECORD_KEYS = {
   pool: "cashbackid.pool",
   sui: "cashbackid.sui",
   threshold: "cashbackid.threshold",
+  profileId: "cashbackid.profile_id",
 } as const
 
 // ---------------------------------------------------------------------------
@@ -107,12 +110,13 @@ export async function resolvePaymentPreferences(
   const normalizedName = normalize(ensName)
 
   // Read all custom text records in parallel
-  const [chainRaw, asset, pool, suiAddress, thresholdRaw] = await Promise.all([
+  const [chainRaw, asset, pool, suiAddress, thresholdRaw, profileId] = await Promise.all([
     client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.chain }).catch(() => null),
     client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.asset }).catch(() => null),
     client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.pool }).catch(() => null),
     client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.sui }).catch(() => null),
     client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.threshold }).catch(() => null),
+    client.getEnsText({ name: normalizedName, key: ENS_RECORD_KEYS.profileId }).catch(() => null),
   ])
 
   return {
@@ -121,6 +125,7 @@ export async function resolvePaymentPreferences(
     pool: pool || null,
     suiAddress: suiAddress || null,
     threshold: thresholdRaw ? parseFloat(thresholdRaw) : null,
+    profileId: profileId || null,
     ensName: normalizedName,
   }
 }
@@ -193,6 +198,9 @@ const RESOLVER_SET_TEXT_ABI = [
 /** Default ENS Public Resolver on mainnet */
 const ENS_PUBLIC_RESOLVER = "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63" as Address
 
+/** Parent ENS name for Cashback ID subdomains (e.g. alice.cashbackid.eth). Must be owned and wrapped to create subdomains. */
+export const CASHBACKID_ENS_PARENT = "cashbackid.eth"
+
 /**
  * Builds the calldata for a multicall that sets all cashbackid.* text records
  * on the user's ENS name in a single transaction.
@@ -258,6 +266,16 @@ export function buildSetPreferencesTx(
     )
   }
 
+  if (preferences.profileId !== undefined) {
+    calls.push(
+      encodeFunctionData({
+        abi: RESOLVER_SET_TEXT_ABI,
+        functionName: "setText",
+        args: [node, ENS_RECORD_KEYS.profileId, preferences.profileId || ""],
+      })
+    )
+  }
+
   // Wrap in multicall for a single tx
   const data = encodeFunctionData({
     abi: RESOLVER_SET_TEXT_ABI,
@@ -277,11 +295,33 @@ export function buildSetPreferencesTx(
 
 /**
  * Validates that an ENS name looks correct (ends in .eth, non-empty label).
+ * Accepts both primary names (alice.eth) and subdomains (alice.cashbackid.eth).
  */
 export function isValidEnsName(name: string): boolean {
   if (!name || !name.endsWith(".eth")) return false
   const label = name.slice(0, -4)
   return label.length >= 3
+}
+
+/**
+ * Returns true if the ENS name is a Cashback ID subdomain (e.g. alice.cashbackid.eth).
+ */
+export function isCashbackIdSubdomain(name: string): boolean {
+  if (!name || typeof name !== "string") return false
+  const normalized = name.toLowerCase().trim()
+  return normalized.endsWith(`.${CASHBACKID_ENS_PARENT}`)
+}
+
+/**
+ * Extracts the subdomain label from a *.cashbackid.eth name (e.g. "alice" from "alice.cashbackid.eth").
+ * Returns null if the name is not a cashbackid subdomain.
+ */
+export function getCashbackIdSubdomainLabel(name: string): string | null {
+  if (!isCashbackIdSubdomain(name)) return null
+  const normalized = name.toLowerCase().trim()
+  const suffix = `.${CASHBACKID_ENS_PARENT}`
+  const label = normalized.slice(0, -suffix.length)
+  return label.length >= 3 ? label : null
 }
 
 /**

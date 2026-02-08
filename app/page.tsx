@@ -153,8 +153,8 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance leading-relaxed">
-                Spend on any chain, receive on your name. Your <span className="text-primary font-mono">.eth</span> identity 
-                stores where and how you get paid — powered by cross-chain execution.
+                Shop anywhere, earn cashback automatically. Set your preferences once 
+                and your rewards flow to you — invested and growing.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
@@ -180,7 +180,7 @@ export default function LandingPage() {
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Powered by Sui zkLogin — one-tap signup, no seed phrases, no gas confusion.
+                One-tap signup. No complicated setup, no passwords to remember.
               </p>
             </div>
           </div>
@@ -202,12 +202,12 @@ export default function LandingPage() {
               {/* Description */}
               <div className="text-center space-y-6 max-w-3xl mx-auto">
                 <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">
-                  Your ENS Name is Your Payment Profile
+                  Your Username is Your Cashback Profile
                 </h2>
                 <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                  No long account numbers. Your <span className="text-primary font-mono">name.eth</span> stores 
-                  your preferred chain, asset, and auto-invest pool — all in Custom Text Records that 
-                  LI.FI reads to route your cashback instantly.
+                  No long account numbers. Just your unique name. Set how you want to get paid, 
+                  which currency you prefer, and where to auto-invest your earnings — 
+                  everything routes to you automatically.
                 </p>
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function LandingPage() {
                 From purchase to payout in 5 steps
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-                Your cashback flows automatically across chains, guided by your ENS preferences.
+                Your cashback flows automatically, guided by your preferences.
               </p>
             </div>
 
@@ -243,7 +243,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-muted flex items-center justify-center text-[8px] md:text-[9px] font-bold text-muted-foreground">V</div>
-                    <span className="text-[10px] md:text-[11px] text-muted-foreground">vitalik.eth</span>
+                    <span className="text-[10px] md:text-[11px] text-muted-foreground">@vitalik</span>
                     <span className="text-[10px] md:text-[11px] font-semibold text-foreground ml-auto">$1,200 USDC</span>
                   </div>
                 </div>
@@ -254,11 +254,11 @@ export default function LandingPage() {
                 <div className="bg-card/90 backdrop-blur-xl border border-border/60 rounded-xl p-2.5 md:p-3 shadow-2xl">
                   <div className="flex items-center gap-2 mb-1">
                     <Shield className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary" />
-                    <span className="text-[10px] md:text-[11px] font-medium text-foreground">ENS Resolved</span>
+                    <span className="text-[10px] md:text-[11px] font-medium text-foreground">Profile Loaded</span>
                   </div>
-                  <div className="space-y-0.5 text-[9px] md:text-[10px] font-mono text-muted-foreground">
-                    <div>cashbackid.chain → <span className="text-primary">sui</span></div>
-                    <div>cashbackid.asset → <span className="text-primary">USDC</span></div>
+                  <div className="space-y-0.5 text-[9px] md:text-[10px] text-muted-foreground">
+                    <div>Payout → <span className="text-primary">USD Coin</span></div>
+                    <div>Auto-invest → <span className="text-primary">Savings Pool</span></div>
                   </div>
                 </div>
               </div>
@@ -273,7 +273,7 @@ export default function LandingPage() {
                     <div className="w-4 h-4 md:w-5 md:h-5 -ml-1 rounded-full bg-primary/20 border border-primary/40 text-[7px] md:text-[8px] flex items-center justify-center text-primary font-bold">C</div>
                   </div>
                   <div className="flex items-center justify-between text-[9px] md:text-[10px] mb-1">
-                    <span className="text-foreground font-medium">120k/300 USDC Raised</span>
+                    <span className="text-foreground font-medium">$120/$300 earned</span>
                     <span className="text-primary">15 days active</span>
                   </div>
                   <div className="h-1 rounded-full bg-muted overflow-hidden">
@@ -287,10 +287,10 @@ export default function LandingPage() {
                 <div className="bg-card/90 backdrop-blur-xl border border-border/60 rounded-xl p-3 shadow-2xl">
                   <div className="flex items-center gap-2 mb-1">
                     <Lock className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-[11px] font-medium text-foreground">Proof Stored</span>
+                    <span className="text-[11px] font-medium text-foreground">Receipt Saved</span>
                   </div>
-                  <p className="text-[10px] font-mono text-muted-foreground">CID: QmXa7...3Kf</p>
-                  <p className="text-[10px] text-primary">Filecoin persisted ✓</p>
+                  <p className="text-[10px] text-muted-foreground">Verified & stored securely</p>
+                  <p className="text-[10px] text-primary">Permanent record ✓</p>
                 </div>
               </div>
 

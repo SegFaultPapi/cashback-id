@@ -30,7 +30,6 @@ import {
   Clock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Footer } from "@/components/footer"
 
 type Transaction = {
   id: string
@@ -473,8 +472,6 @@ export default function HistoryPage() {
           </Button>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

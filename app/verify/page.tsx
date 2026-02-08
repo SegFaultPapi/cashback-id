@@ -16,8 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useWallet } from "@/lib/web3-providers"
-import { SUPPORTED_CHAINS, SUPPORTED_ASSETS, ENS_RECORD_KEYS } from "@/lib/ens-resolver"
-import { Footer } from "@/components/footer"
+import { SUPPORTED_CHAINS, SUPPORTED_ASSETS, ENS_RECORD_KEYS, isCashbackIdSubdomain } from "@/lib/ens-resolver"
 import {
   Shield,
   CheckCircle2,
@@ -37,11 +36,18 @@ import { cn } from "@/lib/utils"
 type Step = "ens" | "preferences" | "confirm" | "success"
 
 export default function VerifyPage() {
-  const { wallet, linkEnsName, updatePreferences } = useWallet()
+  const { wallet, linkEnsName, updatePreferences, setPreferencesViaApi, createProfile, getProfileId } = useWallet()
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<Step>("ens")
   const [ensInput, setEnsInput] = useState(wallet.ensName || "")
   const [isLinking, setIsLinking] = useState(false)
+
+  // Profile ID (Sui) — para que quien pague a este ENS acredite el cashback
+  const [profileIdFromSui, setProfileIdFromSui] = useState<string>(
+    wallet.preferences?.profileId || ""
+  )
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
 
   // Preference form state
   const [selectedChain, setSelectedChain] = useState<string>(
@@ -61,6 +67,10 @@ export default function VerifyPage() {
   )
   const [txData, setTxData] = useState<{ to: string; data: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [isSavingViaApi, setIsSavingViaApi] = useState(false)
+  const [saveApiError, setSaveApiError] = useState<string | null>(null)
+
+  const displayProfileId = profileIdFromSui || wallet.preferences?.profileId || ""
 
   useEffect(() => {
     if (!wallet.isConnected) {
@@ -78,6 +88,16 @@ export default function VerifyPage() {
     }
   }, [wallet.ensName, wallet.address, suiAddress])
 
+  useEffect(() => {
+    if (wallet.preferences?.profileId) setProfileIdFromSui(wallet.preferences.profileId)
+  }, [wallet.preferences?.profileId])
+
+  useEffect(() => {
+    if (wallet.isConnected && currentStep === "preferences" && !displayProfileId) {
+      getProfileId().then((id) => id && setProfileIdFromSui(id))
+    }
+  }, [wallet.isConnected, currentStep, displayProfileId, getProfileId])
+
   const handleLinkEns = async () => {
     if (!ensInput.endsWith(".eth")) return
     setIsLinking(true)
@@ -89,15 +109,47 @@ export default function VerifyPage() {
     }
   }
 
-  const handleBuildTx = () => {
-    const tx = updatePreferences({
+  const handleCreateProfile = async () => {
+    setProfileError(null)
+    setIsCreatingProfile(true)
+    try {
+      const id = await createProfile()
+      setProfileIdFromSui(id)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (msg === "GAS_NEEDED") {
+        setProfileError("gas")
+      } else {
+        setProfileError(msg)
+      }
+    } finally {
+      setIsCreatingProfile(false)
+    }
+  }
+
+  const handleBuildTx = async () => {
+    const prefs = {
       chainId: selectedChain ? parseInt(selectedChain) : null,
       asset: selectedAsset || null,
       pool: selectedPool || null,
       threshold: threshold ? parseFloat(threshold) : null,
       suiAddress: suiAddress || null,
-    })
-    setTxData(tx)
+      profileId: displayProfileId || null,
+    }
+    if (wallet.ensName && isCashbackIdSubdomain(wallet.ensName)) {
+      setSaveApiError(null)
+      setIsSavingViaApi(true)
+      try {
+        const ok = await setPreferencesViaApi(prefs)
+        if (ok) setCurrentStep("success")
+        else setSaveApiError("No se pudieron guardar las preferencias. Intenta de nuevo.")
+      } finally {
+        setIsSavingViaApi(false)
+      }
+      return
+    }
+    const tx = updatePreferences(prefs)
+    setTxData(tx || null)
     setCurrentStep("confirm")
   }
 
@@ -230,6 +282,7 @@ export default function VerifyPage() {
                           {key === "pool" && "→ Auto-invest pool"}
                           {key === "sui" && "→ Sui settlement address"}
                           {key === "threshold" && "→ Minimum sweep amount"}
+                          {key === "profileId" && "→ Sui profile (para recibir pagos por QR/ENS)"}
                         </span>
                       </div>
                     ))}
@@ -348,6 +401,59 @@ export default function VerifyPage() {
                   </Select>
                 </div>
 
+                {/* Profile ID (Sui) — necesario para que pagos a tu ENS acrediten cashback */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Perfil de pago (Sui)</label>
+                  <p className="text-xs text-muted-foreground">
+                    Quien pague a tu ENS usará este ID para acreditar el cashback. Créalo si aún no tienes.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      placeholder="Crear perfil para obtener ID"
+                      value={displayProfileId}
+                      className="bg-muted/50 border-border text-foreground font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCreateProfile}
+                      disabled={isCreatingProfile || !!displayProfileId}
+                      className="border-border hover:bg-secondary shrink-0"
+                    >
+                      {isCreatingProfile ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creando...
+                        </>
+                      ) : displayProfileId ? (
+                        "Listo"
+                      ) : (
+                        "Crear perfil"
+                      )}
+                    </Button>
+                  </div>
+                  {profileError === "gas" && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-sm text-amber-700 dark:text-amber-400">
+                      <p className="font-medium">Necesitas SUI para gas</p>
+                      <p className="mt-1 text-muted-foreground">
+                        En testnet obtén SUI gratis en el faucet y vuelve a intentar.
+                      </p>
+                      <a
+                        href="https://faucet.sui.io/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center mt-2 text-primary hover:underline font-medium"
+                      >
+                        Abrir faucet de Sui (testnet) →
+                      </a>
+                    </div>
+                  )}
+                  {profileError && profileError !== "gas" && (
+                    <p className="text-sm text-destructive">{profileError}</p>
+                  )}
+                </div>
+
                 {/* Sui Address */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Sui Settlement Address</label>
@@ -373,18 +479,36 @@ export default function VerifyPage() {
                   />
                 </div>
 
+                {saveApiError && (
+                  <p className="text-sm text-destructive">{saveApiError}</p>
+                )}
                 <Button
                   onClick={handleBuildTx}
+                  disabled={isSavingViaApi}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                  Review & Confirm
+                  {isSavingViaApi ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : wallet.ensName && isCashbackIdSubdomain(wallet.ensName) ? (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Guardar preferencias
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Review & Confirm
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Step 3: Confirm via Safe */}
+          {/* Step 3: Confirm via Safe (solo para ENS que no son subdominio cashbackid) */}
           {currentStep === "confirm" && (
             <Card className="bg-card border-border">
               <CardHeader>
@@ -424,6 +548,12 @@ export default function VerifyPage() {
                     <span className="text-sm text-muted-foreground">Sweep Threshold</span>
                     <span className="text-sm text-foreground">${threshold}</span>
                   </div>
+                  {displayProfileId && (
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">Profile ID (pagos)</span>
+                      <span className="text-sm font-mono text-foreground truncate max-w-[200px]">{displayProfileId}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm text-muted-foreground">Sui Address</span>
                     <span className="text-sm font-mono text-foreground truncate max-w-[200px]">
@@ -535,8 +665,6 @@ export default function VerifyPage() {
           )}
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

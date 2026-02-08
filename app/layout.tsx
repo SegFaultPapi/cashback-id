@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter, JetBrains_Mono, DM_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Web3Provider } from "@/lib/web3-providers"
+import { AppShell } from "@/components/app-shell"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin"] })
@@ -46,7 +47,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="font-sans antialiased min-h-screen bg-background text-foreground">
-        <Web3Provider>{children}</Web3Provider>
+        <Web3Provider>
+          <AppShell>{children}</AppShell>
+        </Web3Provider>
         <Analytics />
       </body>
     </html>
