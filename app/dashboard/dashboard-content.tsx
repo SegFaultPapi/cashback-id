@@ -114,8 +114,6 @@ export default function DashboardContent() {
 
   const totalInvested = 2847.5
   const growthPercentage = 8.23
-  const monthlyReturn = 23.45
-  const purchases = 47
 
   const tabParam = searchParams?.get("tab") || ""
   const tabValue = tabParam === "pay" || tabParam === "activity" ? tabParam : "overview"
@@ -358,10 +356,10 @@ export default function DashboardContent() {
   if (!wallet.isConnected) return null
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background min-w-0 overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 container px-4 md:px-6 py-6 md:py-8">
+      <main className="flex-1 container px-4 md:px-6 py-6 md:py-8 max-w-full min-w-0">
         <div className="mb-6">
           <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground tracking-tight">
             {wallet.ensName ? (
@@ -450,19 +448,19 @@ export default function DashboardContent() {
             {wallet.preferences && wallet.ensName && (
               <Card className="bg-card border-border">
                 <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <Layers className="h-5 w-5 text-primary" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">Payment profile</p>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-xs text-muted-foreground font-mono break-words">
                           Chain: {wallet.preferences.chainId || "—"} | Asset: {wallet.preferences.asset || "—"} | Pool: {wallet.preferences.pool || "—"}
                         </p>
                       </div>
                     </div>
-                    <Link href="/verify">
+                    <Link href="/verify" className="shrink-0">
                       <Button variant="ghost" size="sm" className="text-primary hover:text-primary/90 bg-transparent">Edit <ArrowUpRight className="ml-1 h-4 w-4" /></Button>
                     </Link>
                   </div>
@@ -473,8 +471,8 @@ export default function DashboardContent() {
             <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative">
               <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px]" />
               <CardContent className="p-6 md:p-8 relative">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <p className="text-sm text-muted-foreground">Total invested</p>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsBalanceVisible(!isBalanceVisible)}>
@@ -487,20 +485,20 @@ export default function DashboardContent() {
                       <p className="font-display text-4xl md:text-5xl font-bold text-foreground">•••••••</p>
                     )}
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/20">Active</Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20 shrink-0">Active</Badge>
                 </div>
                 <div className="relative rounded-xl border border-primary/20 p-3 bg-primary/5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="min-w-0">
                         <p className="text-sm font-medium text-primary">Cashback balance (Sui)</p>
-                        {isBalanceVisible ? <p className="font-display text-2xl font-bold text-primary">{cashbackBalance} SUI</p> : <p className="font-display text-2xl font-bold text-primary">••••••</p>}
+                        {isBalanceVisible ? <p className="font-display text-xl sm:text-2xl font-bold text-primary truncate">{cashbackBalance} SUI</p> : <p className="font-display text-xl sm:text-2xl font-bold text-primary">••••••</p>}
                       </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={refreshBalance} disabled={isRefreshingBalance} title="Refresh balance">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary" onClick={refreshBalance} disabled={isRefreshingBalance} title="Refresh balance">
                         <RefreshCw className={cn("h-4 w-4", isRefreshingBalance && "animate-spin")} />
                       </Button>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <span className="text-lg font-bold text-primary">+{growthPercentage}%</span>
                       <p className="text-xs text-muted-foreground">All time</p>
                     </div>
@@ -508,36 +506,6 @@ export default function DashboardContent() {
                 </div>
               </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">This month</p>
-                    <p className="font-display text-xl font-bold text-foreground">{isBalanceVisible ? `+$${monthlyReturn.toFixed(2)}` : "+$••••"}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><ShoppingBag className="h-5 w-5 text-primary" /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Purchases</p>
-                    <p className="font-display text-xl font-bold text-foreground">{purchases}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-card border-border">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Globe className="h-5 w-5 text-primary" /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Chains active</p>
-                    <p className="font-display text-xl font-bold text-foreground">5</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
             <Card className="bg-card border-border">
               <CardHeader>
@@ -547,17 +515,17 @@ export default function DashboardContent() {
               <CardContent className="pt-0">
                 <div className="space-y-3">
                   {MOCK_ACTIVITY.slice(0, 4).map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
-                      <div className="flex items-center gap-3">
-                        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center", tx.type === "growth" ? "bg-primary/10" : tx.type === "bridge" ? "bg-accent/10" : "bg-secondary")}>
+                    <div key={tx.id} className="flex items-center justify-between gap-3 py-3 border-b border-border/50 last:border-0 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", tx.type === "growth" ? "bg-primary/10" : tx.type === "bridge" ? "bg-accent/10" : "bg-secondary")}>
                           {tx.type === "growth" ? <TrendingUp className="h-5 w-5 text-primary" /> : tx.type === "bridge" ? <ArrowRightLeft className="h-5 w-5 text-accent" /> : <ShoppingBag className="h-5 w-5 text-foreground" />}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{tx.merchant}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{tx.merchant}</p>
                           <p className="text-xs text-muted-foreground">{tx.date}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         {tx.amount > 0 && <p className="text-sm text-muted-foreground">${tx.amount.toFixed(2)}</p>}
                         <p className="text-sm font-semibold text-primary">+${tx.cashback.toFixed(2)}</p>
                       </div>
@@ -574,8 +542,8 @@ export default function DashboardContent() {
                   <CardDescription>Share this link so others can pay to your ENS; cashback is credited to you.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                    <span className="text-sm font-mono text-primary shrink-0">{wallet.ensName}</span>
+                  <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <span className="text-sm font-mono text-primary min-w-0 truncate flex-1">{wallet.ensName}</span>
                     <Button size="sm" variant="outline" className="shrink-0 border-border" onClick={() => navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : ""}/pay?to=${encodeURIComponent(wallet.ensName!)}`)}>
                       Copy payment link
                     </Button>
@@ -597,8 +565,8 @@ export default function DashboardContent() {
                       <div className="flex items-center gap-2">
                         <span className={r.triggered ? "text-primary font-medium" : "text-muted-foreground"}>{r.triggered ? "Ready to sweep" : r.reason}</span>
                         {r.triggered && r.route && (
-                          <Button variant="outline" size="sm" className="border-border h-7 text-xs" onClick={() => setRouteDetailIndex(i)}>
-                            Ver ruta
+                          <Button variant="outline" size="sm" className="border-border h-7 text-xs shrink-0" onClick={() => setRouteDetailIndex(i)}>
+                            View route
                           </Button>
                         )}
                       </div>
@@ -777,14 +745,14 @@ export default function DashboardContent() {
               <CardContent className="pt-0">
                 <div className="space-y-1">
                   {filteredActivity.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between py-4 px-4 rounded-lg hover:bg-secondary/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className={cn("h-12 w-12 rounded-lg flex items-center justify-center", tx.type === "growth" ? "bg-primary/10" : tx.type === "bridge" ? "bg-accent/10" : "bg-secondary")}>
+                    <div key={tx.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 py-4 px-4 rounded-lg hover:bg-secondary/50 transition-colors min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={cn("h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center shrink-0", tx.type === "growth" ? "bg-primary/10" : tx.type === "bridge" ? "bg-accent/10" : "bg-secondary")}>
                           {tx.type === "growth" ? <TrendingUp className="h-5 w-5 text-primary" /> : tx.type === "bridge" ? <ArrowRightLeft className="h-5 w-5 text-accent" /> : <ShoppingBag className="h-5 w-5 text-foreground" />}
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{tx.merchant}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{tx.merchant}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <p className="text-xs text-muted-foreground">{tx.date}</p>
                             {tx.bridgeTool && <Badge variant="outline" className="text-[10px] border-border text-muted-foreground py-0">{tx.bridgeTool}</Badge>}
                             <Badge variant="secondary" className={cn("text-xs", tx.status === "completed" ? "bg-primary/10 text-primary" : tx.status === "bridging" ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground")}>
@@ -795,13 +763,13 @@ export default function DashboardContent() {
                             </Badge>
                           </div>
                           {tx.sourceChain !== tx.destChain && (
-                            <p className="text-[10px] text-muted-foreground mt-1 font-mono">
+                            <p className="text-[10px] text-muted-foreground mt-1 font-mono truncate">
                               {SUPPORTED_CHAINS[tx.sourceChain]?.name || `Chain ${tx.sourceChain}`} → {SUPPORTED_CHAINS[tx.destChain]?.name || `Chain ${tx.destChain}`}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         {tx.type === "purchase" && <p className="text-sm text-muted-foreground mb-1">${tx.amount.toFixed(2)}</p>}
                         <p className={cn("text-sm font-semibold", (tx.type === "growth" || tx.type === "bridge") ? "text-primary" : "text-foreground")}>+${tx.cashback.toFixed(2)}</p>
                       </div>

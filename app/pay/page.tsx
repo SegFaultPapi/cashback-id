@@ -95,11 +95,11 @@ function PayContent() {
   if (!wallet.isConnected) return null
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background min-w-0 overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 container px-4 py-8">
-        <div className="max-w-lg mx-auto">
+      <main className="flex-1 container px-4 py-8 max-w-full min-w-0">
+        <div className="max-w-lg mx-auto min-w-0">
           <Link
             href="/dashboard"
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"

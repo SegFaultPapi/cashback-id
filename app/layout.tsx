@@ -12,26 +12,33 @@ const _inter = Inter({ subsets: ["latin"] })
 const _dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] })
 const _jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || ""
+
 export const metadata: Metadata = {
+  metadataBase: baseUrl ? new URL(baseUrl) : undefined,
   title: "Cashback ID | Your Identity Pays",
   description: "Turn every purchase into an investment. Earn cashback that grows automatically.",
   generator: "v0.app",
   icons: {
     icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
+      { url: "/images/logocashback.png", type: "image/png", sizes: "any" },
+      { url: "/images/logocashback.svg", type: "image/svg+xml", sizes: "any" },
     ],
-    apple: "/apple-icon.png",
+    apple: "/images/logocashback.png",
+  },
+  openGraph: {
+    title: "Cashback ID | Your Identity Pays",
+    description: "Turn every purchase into an investment. Earn cashback that grows automatically.",
+    siteName: "Cashback ID",
+    images: [{ url: "/images/logocashback.png", width: 512, height: 512, alt: "Cashback ID" }],
+    locale: "en",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Cashback ID | Your Identity Pays",
+    description: "Turn every purchase into an investment. Earn cashback that grows automatically.",
+    images: ["/images/logocashback.png"],
   },
 }
 

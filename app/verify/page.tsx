@@ -181,11 +181,11 @@ export default function VerifyPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === currentStep)
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background min-w-0 overflow-x-hidden">
       <Header />
 
-      <main className="flex-1 container px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 container px-4 py-8 max-w-full min-w-0">
+        <div className="max-w-2xl mx-auto min-w-0">
           <div className="mb-8">
             <Link
               href="/dashboard"
@@ -325,10 +325,10 @@ export default function VerifyPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 {wallet.ensName && (
-                  <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <Globe className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-mono text-primary">{wallet.ensName}</span>
-                    <Badge variant="outline" className="ml-auto border-primary/30 text-primary text-xs">
+                  <div className="flex flex-wrap items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <Globe className="h-4 w-4 text-primary shrink-0" />
+                    <span className="text-sm font-mono text-primary min-w-0 truncate flex-1">{wallet.ensName}</span>
+                    <Badge variant="outline" className="sm:ml-auto border-primary/30 text-primary text-xs shrink-0">
                       Linked
                     </Badge>
                   </div>
@@ -407,12 +407,12 @@ export default function VerifyPage() {
                   <p className="text-xs text-muted-foreground">
                     Anyone paying to your ENS will use this ID to credit cashback. Create it if you don&apos;t have one yet.
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       readOnly
                       placeholder="Create profile to get ID"
                       value={displayProfileId}
-                      className="bg-muted/50 border-border text-foreground font-mono text-sm"
+                      className="bg-muted/50 border-border text-foreground font-mono text-sm min-w-0"
                     />
                     <Button
                       type="button"
@@ -524,9 +524,9 @@ export default function VerifyPage() {
               <CardContent className="space-y-6">
                 {/* Summary */}
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm text-muted-foreground">ENS Name</span>
-                    <span className="text-sm font-mono text-primary">{wallet.ensName}</span>
+                  <div className="flex justify-between items-center gap-2 py-2 border-b border-border/50 min-w-0">
+                    <span className="text-sm text-muted-foreground shrink-0">ENS Name</span>
+                    <span className="text-sm font-mono text-primary truncate text-right">{wallet.ensName}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
                     <span className="text-sm text-muted-foreground">Destination Chain</span>
@@ -585,7 +585,7 @@ export default function VerifyPage() {
                   </div>
                 )}
 
-                <div className="flex gap-3">
+                <div className="flex flex-col-reverse sm:flex-row gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setCurrentStep("preferences")}

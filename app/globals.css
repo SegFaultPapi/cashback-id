@@ -100,9 +100,12 @@
   }
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    min-width: 0;
   }
   ::selection {
     background-color: oklch(0.7 0.17 160 / 0.3);
