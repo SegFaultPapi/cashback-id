@@ -158,12 +158,19 @@ export default function HistoryPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isClaiming, setIsClaiming] = useState(false)
+  const [cashbackBalance, setCashbackBalance] = useState("0")
 
   useEffect(() => {
     if (!wallet.isConnected) {
       router.push("/")
     }
   }, [wallet.isConnected, router])
+
+  useEffect(() => {
+    if (wallet.isConnected) {
+      sui.getCashbackBalance().then(setCashbackBalance)
+    }
+  }, [wallet.isConnected, sui])
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesSearch = tx.merchant.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,9 +187,12 @@ export default function HistoryPage() {
   const chainsUsed = new Set(transactions.map((tx) => tx.sourceChain)).size
 
   const handleClaimRewards = async () => {
+    const amount = cashbackBalance || "0"
+    if (parseFloat(amount) <= 0) return
     setIsClaiming(true)
     try {
-      await sui.claimRewards("1.234")
+      await sui.claimRewards(amount)
+      await sui.getCashbackBalance().then(setCashbackBalance)
     } finally {
       setIsClaiming(false)
     }
@@ -277,14 +287,14 @@ export default function HistoryPage() {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-foreground">Claimable Rewards on Sui</p>
-              <p className="text-2xl font-bold text-primary">1.234 SUI</p>
+              <p className="text-2xl font-bold text-primary">{cashbackBalance} SUI</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Accumulated from {bridgedCount} cross-chain transfers
               </p>
             </div>
             <Button
               onClick={handleClaimRewards}
-              disabled={isClaiming}
+              disabled={isClaiming || parseFloat(cashbackBalance) <= 0}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {isClaiming ? (

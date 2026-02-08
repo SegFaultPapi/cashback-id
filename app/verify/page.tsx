@@ -28,9 +28,9 @@ import {
   Sparkles,
   Link2,
   Layers,
-  Save,
   Coins,
   ArrowRight,
+  Copy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -60,6 +60,7 @@ export default function VerifyPage() {
     wallet.preferences?.suiAddress || wallet.address || ""
   )
   const [txData, setTxData] = useState<{ to: string; data: string } | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!wallet.isConnected) {
@@ -104,6 +105,14 @@ export default function VerifyPage() {
     // In production: send tx via Safe or direct wallet
     console.log("[ENS] Transaction data:", txData)
     setCurrentStep("success")
+  }
+
+  const handleCopyTxData = () => {
+    if (!txData) return
+    const payload = JSON.stringify({ to: txData.to, data: txData.data })
+    navigator.clipboard.writeText(payload)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (!wallet.isConnected) {
@@ -433,6 +442,16 @@ export default function VerifyPage() {
                     <p className="text-xs font-mono text-muted-foreground break-all">
                       Data: {txData.data.slice(0, 66)}...
                     </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyTxData}
+                      className="mt-2 border-border hover:bg-secondary bg-transparent"
+                    >
+                      <Copy className="mr-2 h-4 w-4" />
+                      {copied ? "Copied!" : "Copy for Safe"}
+                    </Button>
                   </div>
                 )}
 
