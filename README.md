@@ -1,236 +1,143 @@
 # Cashback ID
 
-**Cross-chain cashback** platform combining **ENS** (identity and payment preferences), **Sui** (profiles and settlement), and **LI.FI** (bridges). Users get a name like `you.cashbackid.eth`, configure how they want to receive payments, and can send or receive cashback in SUI.
+**Your name, your rules, your cashback**
 
----
+A decentralized cashback platform that lets you earn rewards on any blockchain using your ENS identity. Spend on any chain, receive on your name. Your `.eth` identity stores where and how you get paid — powered by cross-chain execution.
 
-## Stack
+## 🚀 Features
 
-| Layer      | Technology                           |
-|-----------|---------------------------------------|
-| Frontend  | Next.js 16, React 19, Tailwind CSS    |
-| Wallet    | Sui (zkLogin-style), @mysten/dapp-kit |
-| Identity  | ENS (resolve, subdomains `.cashbackid.eth`) |
-| Backend   | API Routes (claim subdomain, set preferences, pay, create-profile) |
-| Blockchain| Sui (testnet/mainnet), Hackmoney-style contract (profile + checkout) |
-| Optional  | LI.FI (routes, sweep), Filecoin (proofs) |
+- **ENS Identity Integration**: Link your `.eth` name to configure cashback preferences
+- **Cross-Chain Cashback**: Receive rewards on any supported blockchain via LI.FI routing
+- **zkLogin Authentication**: One-tap signup with Apple or Google — no seed phrases, no gas confusion
+- **Sui Blockchain**: Built on Sui for fast, low-cost transactions
+- **Privacy-First**: Immutable proof persistence on Filecoin
+- **Dashboard**: Track your cashback earnings, transactions, and rewards
+- **Leaderboard**: Compete with other users and see top earners
+- **Multi-Chain Support**: Configure preferences for different chains and assets
 
----
+## 🛠️ Tech Stack
 
-## Features
+- **Framework**: [Next.js 16](https://nextjs.org/) with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with Radix UI components
+- **Blockchain**: 
+  - [Sui](https://sui.io/) - Main settlement layer with zkLogin
+  - [ENS](https://ens.domains/) - Identity and payment preferences
+  - [LI.FI](https://li.fi/) - Cross-chain routing
 
-- **Landing** → Wallet connect (simulated zkLogin-style flow).
-- **Dashboard** → Overview, Pay and Activity tabs, cashback balance in SUI.
-- **Free ENS** → Claim `you.cashbackid.eth` (no payment or signing); preferences saved via API.
-- **Verify / Profile** → Link existing ENS or use subdomain; create Sui profile; set chain, asset, and pool.
-- **Pay** → Resolve ENS (incl. `.cashbackid.eth`), enter amount and send payment; cashback is credited to the recipient’s profile.
-- **Receive payments** → Share link `/pay?to=you.cashbackid.eth` so others can pay and cashback goes to your profile.
-- **Rewards** → View balance and claim rewards in SUI.
-- **Leaderboard** → User ranking (mock data).
+## 📋 Prerequisites
 
----
+- Node.js 18+ 
+- npm, yarn, or pnpm
+- A wallet or ENS name (optional for initial setup)
 
-## User flows (Mermaid)
+## 🏃 Getting Started
 
-### 1. General flow: landing to usage
+### Installation
 
-```mermaid
-flowchart LR
-  A[Landing] -->|Connect wallet| B{Dashboard}
-  B --> C[Overview]
-  B --> D[Pay]
-  B --> E[Activity]
-  B --> F[Verify / Profile]
-  B --> G[Rewards]
-  F --> H[Create Sui profile]
-  F --> I[Set preferences]
-  D --> J[Resolve ENS]
-  J --> K[Send payment]
-  K --> L[Cashback credited]
-```
-
-### 2. Onboarding: identity and profile
-
-```mermaid
-flowchart TD
-  Start([User connected]) --> A{Has ENS?}
-  A -->|No| B[Claim you.cashbackid.eth]
-  A -->|Yes| C[Link existing ENS]
-  B --> D[Go to Verify]
-  C --> D
-  D --> E{Sui profile?}
-  E -->|No| F[Create profile - sign and gas]
-  E -->|Yes| G[Set preferences]
-  F --> G
-  G --> H[Save via API]
-  H --> I([Ready to receive payments])
-```
-
-### 3. Send a payment (Pay)
-
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant App as App
-  participant API as API / ENS
-  participant Sui as Sui (checkout)
-
-  U->>App: Enter ENS and amount
-  App->>API: Resolve ENS (resolve / api/ens/resolve)
-  API-->>App: profileId, preferences
-  App->>App: Show Profile found
-  U->>App: Confirm send
-  App->>API: POST /api/pay (profileId, amount)
-  API->>Sui: process_payment (server signs)
-  Sui-->>API: digest
-  API-->>App: digest
-  App-->>U: Payment sent, cashback to recipient
-```
-
-### 4. Verify and configure profile (Verify)
-
-```mermaid
-flowchart TD
-  V([Verify]) --> S1[Step 1: ENS]
-  S1 -->|Subdomain .cashbackid.eth| API1[POST /api/ens/claim-subdomain]
-  S1 -->|Existing ENS| Link[linkEnsName]
-  API1 --> S2[Step 2: Preferences]
-  Link --> S2
-  S2 --> Profile{Sui profile?}
-  Profile -->|No| Create[Create profile - createProfile]
-  Profile -->|Yes| Prefs[Chain, Asset, Pool, threshold]
-  Create --> Prefs
-  Prefs -->|Subdomain| API2[POST /api/ens/set-preferences]
-  Prefs -->|ENS on-chain| Tx[Build tx / sign]
-  API2 --> Success([Done])
-  Tx --> Success
-```
-
-### 5. High-level architecture
-
-```mermaid
-flowchart TB
-  subgraph Client["Frontend (Next.js)"]
-    Landing[Landing]
-    Dashboard[Dashboard]
-    Verify[Verify]
-    Pay[Pay]
-    Rewards[Rewards]
-  end
-
-  subgraph APIs["API Routes"]
-    Claim[claim-subdomain]
-    Prefs[set-preferences]
-    Resolve[resolve]
-    CreateProfile[create-profile]
-    PayAPI[pay]
-  end
-
-  subgraph External["External"]
-    ENS[ENS / Ethereum]
-    Sui[Sui Network]
-    LiFi[LI.FI]
-  end
-
-  Landing --> Dashboard
-  Dashboard --> Pay
-  Dashboard --> Verify
-  Verify --> Claim
-  Verify --> Prefs
-  Verify --> CreateProfile
-  Pay --> Resolve
-  Pay --> PayAPI
-  Claim --> Store[(Store JSON)]
-  Prefs --> Store
-  Resolve --> Store
-  Resolve --> ENS
-  CreateProfile --> Sui
-  PayAPI --> Sui
-  Dashboard -.-> LiFi
-```
-
----
-
-## Getting started
-
-### Requirements
-
-- Node.js 18+
-- pnpm (recommended) or npm
-
-### Install
-
+1. Clone the repository:
 ```bash
-pnpm install
-# or
+git clone <repository-url>
+cd cashback-id
+```
+
+2. Install dependencies:
+```bash
 npm install
-```
-
-### Environment variables
-
-Copy `.env.example` to `.env.local` and fill in as needed:
-
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Description |
-|----------|-------------|
-| `SUI_PRIVATE_KEY` | Server private key (base64) to sign create-profile and pay. |
-| `NEXT_PUBLIC_CASHBACK_PACKAGE_ID` | (Optional) Sui Move package ID; defaults to GA-Asso/Hackmoney on testnet. |
-| `NEXT_PUBLIC_SUI_NETWORK` | `testnet` or `mainnet`. |
-| `NEXT_PUBLIC_ETH_RPC_URL` | (Optional) Ethereum RPC for ENS resolution. |
-
-For **Pay** to work, the wallet for `SUI_PRIVATE_KEY` must have enough SUI for gas.
-
-### Development
-
-```bash
-pnpm dev
 # or
-npm run dev
+yarn install
+# or
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+3. Create a `.env.local` file in the root directory:
+```env
+# Add your environment variables here
+# Example:
+# NEXT_PUBLIC_SUI_NETWORK=testnet
+# NEXT_PUBLIC_ENS_RPC_URL=your_ens_rpc_url
+```
 
-### Build
-
+4. Run the development server:
 ```bash
-pnpm build
-pnpm start
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
 ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## 📁 Project Structure
+
+```
+cashback-id/
+├── app/                    # Next.js app router pages
+│   ├── dashboard/         # User dashboard
+│   ├── leaderboard/       # Leaderboard page
+│   ├── rewards/          # Rewards management
+│   ├── transactions/     # Transaction history
+│   ├── verify/           # ENS verification
+│   ├── layout.tsx        # Root layout
+│   └── page.tsx          # Landing page
+├── components/           # React components
+│   ├── ui/              # Reusable UI components (shadcn/ui)
+│   ├── cashback-chart.tsx
+│   ├── header.tsx
+│   ├── footer.tsx
+│   └── ...
+├── lib/                  # Core libraries and utilities
+│   ├── ens-resolver.ts   # ENS name resolution and preferences
+│   ├── sui-client.tsx    # Sui blockchain integration
+│   ├── lifi-client.ts    # Cross-chain routing
+│   ├── filecoin-persistence.ts  # Proof storage
+│   ├── web3-providers.tsx       # Web3 context provider
+│   └── utils.ts         # Utility functions
+├── hooks/                # Custom React hooks
+├── public/               # Static assets
+├── styles/               # Global styles
+└── package.json
+```
+
+## 🔧 Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+## 🌐 How It Works
+
+1. **Connect**: Sign in with Apple or Google using Sui zkLogin
+2. **Link ENS**: Connect your `.eth` name to set payment preferences
+3. **Configure**: Set which chains and assets you want to receive cashback on
+4. **Earn**: Make purchases and automatically earn cashback
+5. **Receive**: Cashback is routed cross-chain to your preferred address via LI.FI
+6. **Track**: Monitor all earnings and transactions in your dashboard
+
+## 🔐 Security
+
+- **zkLogin**: Passwordless authentication without seed phrases
+- **ENS Verification**: Cryptographic verification of identity
+- **Immutable Proofs**: All cashback transactions are stored on Filecoin
+- **Cross-Chain Security**: LI.FI's secure routing infrastructure
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📝 License
+
+This project is private and proprietary.
+
+## 🔗 Links
+
+- [Sui Documentation](https://docs.sui.io/)
+- [ENS Documentation](https://docs.ens.domains/)
+- [LI.FI Documentation](https://docs.li.fi/)
+- [Next.js Documentation](https://nextjs.org/docs)
 
 ---
 
-## Project structure
 
-```
-├── app/
-│   ├── page.tsx              # Landing
-│   ├── layout.tsx
-│   ├── dashboard/            # Dashboard (Overview, Pay, Activity)
-│   ├── verify/               # Profile / ENS / preferences
-│   ├── pay/                  # Pay page (ENS + amount)
-│   ├── rewards/              # Claim rewards
-│   ├── leaderboard/
-│   └── api/                  # claim-subdomain, set-preferences, resolve, create-profile, pay
-├── components/               # UI and layout (Header, BottomNav, AppShell, etc.)
-├── lib/                      # web3-providers, sui-client, ens-resolver, ens-subdomain-store, api-validate, etc.
-├── docs/                     # IMPLEMENTATION_PLAN, MVP_CHECKLIST, ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS
-├── .env.example
-└── README.md
-```
-
----
-
-## Further documentation
-
-- [docs/MVP_CHECKLIST.md](docs/MVP_CHECKLIST.md) — MVP status and requirements for end-to-end flow.
-- [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — Implementation plan and Sui contract usage (Hackmoney).
-- [docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md](docs/ENS_CUSTOM_TEXT_RECORDS_AND_SUBDOMAINS.md) — ENS records and `.cashbackid.eth` subdomains.
-
----
-
-## License
-
-Private project.
